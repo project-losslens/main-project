@@ -219,6 +219,23 @@ main {
   background: #dff7f3;
 }
 
+.button-outline {
+  background: transparent;
+  border: 1px solid rgb(255 255 255 / 68%);
+  color: var(--brand-white);
+}
+
+.button-outline:hover {
+  background: rgb(255 255 255 / 10%);
+}
+
+.public-landing-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .button .icon {
   height: 17px;
   width: 17px;
@@ -1462,6 +1479,12 @@ fieldset.form-field {
   padding: clamp(20px, 4vw, 32px);
 }
 
+.auth-return {
+  margin: 12px auto 0;
+  max-width: 520px;
+  text-align: center;
+}
+
 .auth-form,
 .auth-account {
   display: grid;
@@ -2413,5 +2436,619 @@ fieldset.form-field {
   .inline-add-form {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+/* Dark LossLens theme overrides; layout and responsive rules remain above. */
+.site-header {
+  background: var(--color-brand-navy);
+  border-bottom-color: var(--border);
+}
+
+.nav-link,
+.header-link {
+  font-size: 14px;
+}
+
+.nav-link:hover,
+.nav-link[aria-current='page'],
+.header-link:hover {
+  background: var(--teal-wash);
+  color: var(--color-primary-teal);
+}
+
+.header-link {
+  color: var(--color-primary-teal);
+}
+
+.account-email,
+.section-index,
+.feature-card .availability-note {
+  color: var(--muted);
+}
+
+.welcome-panel {
+  background:
+    radial-gradient(
+      ellipse at 77% 42%,
+      rgb(45 212 191 / 12%),
+      transparent 29%
+    ),
+    linear-gradient(118deg, var(--color-brand-navy), #111b2d 62%, #172338);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.welcome-panel h1 {
+  font-size: clamp(36px, 5vw, 56px);
+}
+
+.welcome-description {
+  color: var(--text-secondary);
+  font-size: 16px;
+}
+
+.button-light {
+  background: var(--button-primary-background);
+  color: var(--button-primary-text);
+}
+
+.button-light:hover {
+  background: var(--button-primary-hover);
+  filter: brightness(1.08);
+}
+
+.button-outline {
+  border-color: var(--color-secondary-sky);
+  color: var(--color-secondary-sky);
+}
+
+.button-outline:hover {
+  background: var(--sky-wash);
+}
+
+.welcome-note {
+  color: var(--muted);
+  font-size: var(--font-size-small);
+}
+
+.section-heading h2,
+.resources-panel h2,
+.section-block h1 {
+  color: var(--text-primary);
+}
+
+.section-description,
+.cost-card-copy p,
+.feature-card p,
+.resources-panel > div:nth-child(2) > p:last-child,
+.home-summary-heading p:not(.eyebrow),
+.home-recovery-panel p:not(.eyebrow),
+.home-next-step p:not(.eyebrow),
+.support-page-intro,
+.verified-resources > p:not(.eyebrow),
+.lesson-body,
+.financial-history > div:first-child > p:last-child,
+.history-limit-note {
+  color: var(--text-secondary);
+  font-size: var(--font-size-small);
+}
+
+.preview-chip,
+.status-label {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.resources-panel,
+.resources-panel .resources-icon {
+  background: var(--surface-raised);
+  border-color: var(--border);
+}
+
+.home-summary-panel,
+.home-recovery-panel,
+.home-next-step,
+.true-cost-card,
+.feature-card,
+.actual-totals,
+.bet-entry-section,
+.records-section,
+.support-card,
+.auth-card {
+  background: var(--surface);
+  border-color: var(--border);
+  border-radius: var(--radius-card);
+}
+
+.home-recovery-panel {
+  background: var(--surface-raised);
+}
+
+.home-next-step {
+  background: var(--surface-subtle);
+}
+
+.home-summary-heading h2,
+.home-recovery-panel h2,
+.home-next-step h2,
+.cost-card-copy h3,
+.feature-title-row h3,
+.feature-card-link h3,
+.home-summary-values strong,
+.section-block h1,
+.get-support-page .support-card > h1 {
+  color: var(--text-primary);
+}
+
+.home-summary-values strong {
+  font-size: var(--font-size-lead);
+}
+
+.home-exposure-note,
+.home-checkin-status,
+.record-completeness,
+.accounting-notice,
+.local-storage-note,
+.ledger-context,
+.financial-explanation,
+.trusted-person-note {
+  background: var(--sky-wash);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--color-secondary-sky);
+  color: var(--text-secondary);
+}
+
+.home-recovery-panel .home-checkin-status {
+  background: transparent;
+  border: 0;
+  color: var(--text-secondary);
+}
+
+.home-actions .text-button,
+.know-more-button {
+  color: var(--color-secondary-sky);
+}
+
+.recovery-quick-nav .feature-card,
+.feature-card-link {
+  background: var(--surface);
+  border-color: var(--border);
+}
+
+.feature-card-link:hover {
+  background: var(--surface-raised);
+  border-color: var(--color-secondary-sky);
+}
+
+.cost-icon-wrap,
+.feature-icon-wrap,
+.resources-icon {
+  background: var(--teal-wash);
+  color: var(--color-primary-teal);
+}
+
+.feature-card-link > .icon:last-child,
+.lesson-toggle span:last-child {
+  color: var(--color-secondary-sky);
+}
+
+.site-footer {
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+.footer-brand {
+  color: var(--text-primary);
+}
+
+.history-view-switch .secondary-button[aria-pressed='true'] {
+  background: var(--teal-wash);
+  border-color: var(--color-primary-teal);
+  color: var(--color-primary-teal);
+}
+
+.history-table th,
+.history-table td {
+  border-color: var(--border);
+  color: var(--text-secondary);
+  font-size: var(--font-size-small);
+}
+
+.history-table thead th {
+  background: var(--surface-raised);
+  color: var(--color-secondary-sky);
+}
+
+.history-table tbody th {
+  color: var(--text-primary);
+}
+
+.lesson-toggle {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+}
+
+.resource-verification-status {
+  background: var(--sky-wash);
+  border: 1px solid var(--color-secondary-sky);
+  border-left-width: 4px;
+  color: var(--text-primary);
+}
+
+.local-storage-note {
+  background: var(--sky-wash);
+  color: var(--text-secondary);
+}
+
+.local-storage-dot {
+  background: var(--color-secondary-sky);
+}
+
+.storage-status,
+.records-empty,
+.totals-empty {
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+}
+
+.storage-error,
+.auth-message-error,
+.field-error {
+  background: var(--state-error-background);
+  border: 1px solid var(--state-error-border);
+  border-left: 4px solid var(--state-error);
+  color: var(--state-error);
+  font-weight: 650;
+}
+
+.actual-totals,
+.bet-entry-section,
+.records-section,
+.support-card {
+  padding: clamp(18px, 3vw, 26px);
+}
+
+.module-section-heading h3,
+.accounting-notice h3,
+.form-field > label,
+.form-field legend,
+.ledger-context h4,
+.historical-periods h4,
+.recent-checkins h4,
+.personal-options h4,
+.trigger-fieldset legend,
+.tool-card .form-field > span,
+.financial-settings h4,
+.financial-explanation h4,
+.duplicate-review h4,
+.financial-explanation dt {
+  color: var(--text-primary);
+}
+
+.accounting-notice {
+  background: var(--sky-wash);
+  border-color: rgb(125 189 238 / 35%);
+}
+
+.accounting-notice ul,
+.ledger-context > p,
+.ledger-context > div > p,
+.ledger-context > div > button,
+.unavailable-reasons,
+.historical-periods ul,
+.recent-checkins ul,
+.personal-list {
+  color: var(--text-secondary);
+}
+
+.period-control,
+.period-description,
+.money-rounding-note,
+.required-indicator,
+.field-hint,
+.record-count,
+.record-card-heading p,
+.record-values dt,
+.record-values dd,
+.record-note,
+.record-actions > span,
+.no-estimates-note,
+.progress-summary > span,
+.progress-summary > small,
+.goal-progress label,
+.goal-progress span,
+.recent-checkins li span,
+.timer-status {
+  color: var(--muted);
+}
+
+.total-card,
+.tool-card,
+.progress-summary,
+.financial-settings,
+.financial-explanation,
+.ledger-context {
+  background: var(--surface-raised);
+  border-color: var(--border);
+}
+
+.total-card-net,
+.reviewed-duplicates {
+  background: var(--state-success-background);
+  border-color: var(--state-success-border);
+}
+
+.total-card strong,
+.progress-summary > strong,
+.timer-running strong {
+  color: var(--text-primary);
+}
+
+.record-flags span {
+  background: var(--teal-wash);
+  color: var(--text-secondary);
+}
+
+.form-field input:not([type='radio']),
+.form-field select,
+.form-field textarea,
+.period-control select,
+.financial-insights .period-control input,
+.inline-add-form input {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder,
+.inline-add-form input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.form-field input:focus-visible,
+.form-field select:focus-visible,
+.form-field textarea:focus-visible,
+.period-control select:focus-visible,
+.financial-insights .period-control input:focus-visible,
+.inline-add-form input:focus-visible {
+  border-color: var(--focus-color);
+  box-shadow: var(--focus-ring);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.form-field input[aria-invalid='true'],
+.form-field select[aria-invalid='true'],
+.form-field textarea[aria-invalid='true'] {
+  border-color: var(--state-error-border);
+}
+
+.choice-option {
+  background: var(--surface-subtle);
+  border-color: var(--border);
+  color: var(--text-secondary);
+  font-size: var(--font-size-small);
+}
+
+.choice-option:has(input:checked) {
+  background: var(--teal-wash);
+  border-color: var(--color-primary-teal);
+  color: var(--color-primary-teal);
+}
+
+.choice-option:has(input:focus-visible),
+.reviewed-checkbox:has(input:focus-visible) {
+  box-shadow: var(--focus-ring);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.choice-option input,
+.reviewed-checkbox input {
+  accent-color: var(--color-primary-teal);
+}
+
+.derived-return,
+.auth-info,
+.auth-message-success {
+  background: var(--state-success-background);
+  border: 1px solid var(--state-success-border);
+  color: var(--text-primary);
+}
+
+.form-status,
+.reviewed-duplicates p,
+.personal-reminder {
+  background: var(--state-success-background);
+  border: 1px solid var(--state-success-border);
+  border-left: 4px solid var(--state-success);
+  color: var(--text-primary);
+}
+
+.duplicate-review {
+  background: var(--state-warning-background);
+  border: 1px solid var(--state-warning-border);
+}
+
+.duplicate-review h4,
+.duplicate-review > p,
+.duplicate-group > p,
+.reviewed-duplicates p {
+  color: var(--text-secondary);
+}
+
+.duplicate-group {
+  border-color: var(--border);
+}
+
+.financial-explanation dl > div,
+.historical-periods,
+.recent-checkins,
+.reflection-form,
+.personal-options,
+.record-actions {
+  border-color: var(--border);
+}
+
+.recent-checkins li,
+.personal-list li {
+  border-color: var(--border);
+}
+
+.tool-card h4,
+.reflection-form h4,
+.financial-settings h4,
+.financial-explanation h4,
+.unavailable-reasons strong,
+.recent-checkins li strong {
+  color: var(--text-primary);
+}
+
+.financial-explanation dd,
+.support-intro,
+.financial-settings > div > p:last-child,
+.financial-explanation > p,
+.historical-periods > p,
+.recent-checkins > p,
+.personal-options section > p,
+.trusted-person-note,
+.tool-card > p {
+  color: var(--text-secondary);
+}
+
+.goal-progress progress,
+.reviewed-checkbox input {
+  accent-color: var(--color-primary-teal);
+}
+
+.timer-running strong {
+  color: var(--color-primary-teal);
+}
+
+.personal-reminder {
+  overflow-wrap: anywhere;
+}
+
+.auth-card {
+  box-shadow: var(--shadow-card);
+}
+
+.auth-message,
+.auth-info {
+  font-size: var(--font-size-small);
+}
+
+.auth-message-success {
+  border-left: 4px solid var(--state-success);
+}
+
+.auth-info {
+  background: var(--sky-wash);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.primary-button,
+.secondary-button,
+.danger-button,
+.text-button {
+  border-radius: var(--radius-control);
+  font-size: var(--font-size-small);
+  min-height: 46px;
+}
+
+.primary-button {
+  background: var(--button-primary-background);
+  color: var(--button-primary-text);
+}
+
+.primary-button:hover:not(:disabled) {
+  background: var(--button-primary-hover);
+  filter: brightness(1.08);
+}
+
+.secondary-button {
+  background: var(--button-secondary-background);
+  border-color: var(--border);
+  color: var(--button-secondary-text);
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: var(--surface-subtle);
+  border-color: var(--button-secondary-border);
+}
+
+.danger-button {
+  background: var(--state-error-background);
+  border-color: var(--state-error-border);
+  color: var(--state-error);
+}
+
+.text-button,
+.auth-text-button {
+  color: var(--color-secondary-sky);
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible,
+.danger-button:focus-visible,
+.text-button:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled,
+.danger-button:disabled,
+.header-link:disabled {
+  filter: saturate(0.55);
+  opacity: 0.58;
+}
+
+.record-card {
+  background: var(--surface-raised);
+  border-color: var(--border);
+  border-radius: var(--radius-card);
+}
+
+.record-card-heading h4,
+.record-values dd {
+  color: var(--text-primary);
+}
+
+.result-badge {
+  background: var(--surface-subtle);
+  color: var(--text-secondary);
+}
+
+.result-cashout {
+  background: var(--sky-wash);
+  color: var(--color-secondary-sky);
+}
+
+.result-void {
+  background: var(--surface-subtle);
+  color: var(--muted);
+}
+
+.record-note {
+  border-color: var(--color-secondary-sky);
+}
+
+@media (max-width: 560px) {
+  .welcome-panel h1 {
+    font-size: clamp(32px, 9vw, 43px);
+  }
+
+  .welcome-description,
+  .section-description {
+    font-size: var(--font-size-small);
   }
 }

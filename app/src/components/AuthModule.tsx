@@ -10,8 +10,10 @@ type Props = {
   authNotice: string
   authReady: boolean
   authUnavailable: boolean
+  initialMode: 'login' | 'signup'
   onRecoveryComplete: () => void
   onReturnHome: () => void
+  onReturnPublicLanding: () => void
   recoveryAvailable: boolean
   recoveryLinkError: boolean
   session: Session | null
@@ -22,13 +24,15 @@ function AuthModule({
   authNotice,
   authReady,
   authUnavailable,
+  initialMode,
   onRecoveryComplete,
   onReturnHome,
+  onReturnPublicLanding,
   recoveryAvailable,
   recoveryLinkError,
   session,
 }: Props) {
-  const [mode, setMode] = useState<AuthMode>('login')
+  const [mode, setMode] = useState<AuthMode>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -102,7 +106,7 @@ function AuthModule({
           tone: 'success',
           text: data.session
             ? 'Your account is ready and you are signed in. Your personal records remain on this device.'
-            : 'Your account request was received. If email confirmation is enabled, verify your address using the email before signing in. If you do not receive a message, try signing in or resetting your password.',
+            : 'Your registration request was received. Check your inbox for a verification email and follow its link to return to LossLens. Depending on your account settings, you may then be signed in or asked to log in. If the email does not arrive, try signing in or requesting a password reset.',
         })
       } else if (activeMode === 'forgot-password') {
         const { error } = await authClient.auth.resetPasswordForEmail(
@@ -161,7 +165,7 @@ function AuthModule({
     <section aria-labelledby="auth-title" className="section-block auth-section">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Optional account · local records stay local</p>
+          <p className="eyebrow">Account access · local records stay local</p>
           <h1 id="auth-title" tabIndex={-1}>
             {session && !recoveryAvailable ? 'Your account' : title}
           </h1>
@@ -181,8 +185,8 @@ function AuthModule({
         ) : authUnavailable || !authClient ? (
           <p className="auth-info" role="status">
             Supabase account services could not be initialized. Check the
-            project URL and publishable-key configuration. Local LossLens
-            features remain available.
+            project URL and publishable-key configuration. Get Support remains
+            available without signing in.
           </p>
         ) : session && !recoveryAvailable ? (
           <div className="auth-account">
@@ -372,6 +376,15 @@ function AuthModule({
             )}
           </>
         )}
+      </div>
+      <div className="auth-return">
+        <button
+          className="text-button auth-text-button"
+          onClick={onReturnPublicLanding}
+          type="button"
+        >
+          Back to the public home page
+        </button>
       </div>
     </section>
   )

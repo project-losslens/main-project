@@ -1,15 +1,56 @@
 :root {
-  --page: #f5f8fb;
-  --surface: var(--brand-white);
-  --ink: #0b1220;
-  --muted: #566579;
-  --brand-teal: #126a70;
-  --teal-wash: #e7f7f6;
-  --border: #e0e7ef;
-  --brand-navy: #0b1220;
-  --brand-turquoise: #2dd4bf;
-  --brand-sky: #7dbdee;
-  --brand-white: #fff;
+  --color-brand-navy: #0b1220;
+  --color-primary-teal: #2dd4bf;
+  --color-secondary-sky: #7dbdee;
+  --color-white: #ffffff;
+
+  --page: var(--color-brand-navy);
+  --surface: #111b2d;
+  --surface-raised: #172338;
+  --surface-subtle: #1d2b40;
+  --text-primary: var(--color-white);
+  --text-secondary: #e4eaf2;
+  --ink: var(--text-primary);
+  --muted: #aebbd0;
+  --brand-teal: var(--color-primary-teal);
+  --teal-wash: rgb(45 212 191 / 12%);
+  --sky-wash: rgb(125 189 238 / 12%);
+  --border: #34445a;
+  --brand-navy: var(--color-brand-navy);
+  --brand-turquoise: var(--color-primary-teal);
+  --brand-sky: var(--color-secondary-sky);
+  --brand-white: var(--color-white);
+
+  --button-primary-background: var(--color-primary-teal);
+  --button-primary-text: var(--color-brand-navy);
+  --button-primary-hover: var(--color-primary-teal);
+  --button-secondary-background: var(--surface-raised);
+  --button-secondary-text: var(--color-secondary-sky);
+  --button-secondary-border: var(--color-secondary-sky);
+
+  --focus-color: var(--color-secondary-sky);
+  --focus-ring: 0 0 0 3px var(--color-brand-navy),
+    0 0 0 5px var(--focus-color);
+
+  --state-success: var(--color-primary-teal);
+  --state-success-background: rgb(45 212 191 / 12%);
+  --state-success-border: var(--color-primary-teal);
+  --state-warning: var(--color-secondary-sky);
+  --state-warning-background: rgb(125 189 238 / 12%);
+  --state-warning-border: var(--color-secondary-sky);
+  --state-error: var(--color-white);
+  --state-error-background: rgb(255 255 255 / 8%);
+  --state-error-border: rgb(255 255 255 / 55%);
+
+  --font-family-sans: Poppins, "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  --font-size-small: 0.875rem;
+  --font-size-body: 1rem;
+  --font-size-lead: 1.125rem;
+  --font-size-heading-3: 1.25rem;
+  --font-size-heading-2: 1.5rem;
+  --font-size-heading-1: clamp(2rem, 4vw, 2.75rem);
+  --line-height-body: 1.6;
+
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -18,14 +59,12 @@
   --space-8: 32px;
   --radius-control: 9px;
   --radius-card: 15px;
-  --shadow-card: 0 1px 3px rgb(11 18 32 / 5%);
-  --focus-ring: 0 0 0 3px rgb(18 106 112 / 24%);
+  --shadow-card: 0 8px 24px rgb(0 0 0 / 18%);
 
   background: var(--page);
   color: var(--ink);
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: var(--font-family-sans);
+  font-size: 16px;
   font-synthesis: none;
   font-optical-sizing: auto;
   font-weight: 400;
@@ -48,6 +87,30 @@ body {
   margin: 0;
   min-height: 100vh;
   min-width: 320px;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: var(--font-size-heading-1);
+}
+
+h2 {
+  font-size: var(--font-size-heading-2);
+}
+
+h3 {
+  font-size: var(--font-size-heading-3);
 }
 
 a {
@@ -55,7 +118,8 @@ a {
 }
 
 a:focus-visible {
-  outline: 3px solid #16877f;
+  box-shadow: var(--focus-ring);
+  outline: 2px solid var(--focus-color);
   outline-offset: 3px;
 }
 
@@ -71,13 +135,14 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible {
-  outline: 3px solid #16877f;
+  box-shadow: var(--focus-ring);
+  outline: 2px solid var(--focus-color);
   outline-offset: 2px;
 }
 
 ::selection {
-  background: #c9f1eb;
-  color: #0b1220;
+  background: var(--color-primary-teal);
+  color: var(--color-brand-navy);
 }
 
 @media (prefers-reduced-motion: reduce) {

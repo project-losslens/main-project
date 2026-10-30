@@ -9,7 +9,14 @@ import TrueCostModule from './components/TrueCostModule'
 
 type IconName = 'home' | 'chart' | 'journal' | 'tools' | 'support' | 'arrow'
 
-type View = 'home' | 'true-cost' | 'recovery' | 'support' | 'auth'
+type View = 'landing' | 'home' | 'true-cost' | 'recovery' | 'support' | 'auth'
+type PrivateView = 'home' | 'true-cost' | 'recovery'
+type NavigableView = Exclude<View, 'landing'>
+type AuthStartMode = 'login' | 'signup'
+
+function isPrivateView(view: View): view is PrivateView {
+  return view === 'home' || view === 'true-cost' || view === 'recovery'
+}
 
 const supportFeatures: {
   title: string
@@ -90,7 +97,8 @@ function Icon({ name }: { name: IconName }) {
 }
 
 function App() {
-  const [view, setView] = useState<View>('home')
+  const [view, setView] = useState<View>('landing')
+  const [authStartMode, setAuthStartMode] = useState<AuthStartMode>('login')
   const [authClient, setAuthClient] = useState<SupabaseClient | null>(null)
   const [authReady, setAuthReady] = useState(false)
   const [authUnavailable, setAuthUnavailable] = useState(false)
@@ -99,8 +107,24 @@ function App() {
   const [recoveryLinkError, setRecoveryLinkError] = useState(false)
   const [authNotice, setAuthNotice] = useState('')
   const [signingOut, setSigningOut] = useState(false)
+  const authenticated = authReady && session !== null
 
-  function navigate(nextView: Exclude<View, 'home'>) {
+  function openAuth(mode: AuthStartMode) {
+    setAuthStartMode(mode)
+    setAuthNotice('')
+    setView('auth')
+  }
+
+  function navigate(nextView: NavigableView) {
+    if (isPrivateView(nextView) && !authenticated) {
+      setAuthStartMode('login')
+      setAuthNotice(
+        authReady ? 'Sign in to access your LossLens workspace.' : '',
+      )
+      setView('auth')
+      return
+    }
+
     setView(nextView)
   }
 
@@ -139,6 +163,10 @@ function App() {
             } else if (event === 'SIGNED_OUT') {
               setRecoveryAvailable(false)
               setRecoveryLinkError(false)
+              setAuthNotice('Your session ended. Sign in to continue.')
+              setView((currentView) =>
+                isPrivateView(currentView) ? 'auth' : currentView,
+              )
             }
           },
         )
@@ -148,7 +176,7 @@ function App() {
         if (!active) return
         if (sessionResult.error) {
           setAuthNotice(
-            'Your local features remain available, but your sign-in session could not be restored. Try opening Account again.',
+            'Your sign-in session could not be restored. Sign in again to access your workspace. Get Support remains available without an account.',
           )
         } else {
           setSession(sessionResult.data.session)
@@ -177,6 +205,7 @@ function App() {
 
   useEffect(() => {
     const headingId: Partial<Record<View, string>> = {
+      landing: 'public-title',
       home: 'welcome-title',
       'true-cost': 'true-cost-title',
       recovery: 'personal-support-title',
@@ -188,12 +217,18 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [view])
 
-  const navigation: { view: View; label: string; icon: IconName }[] = [
-    { view: 'home', label: 'Home', icon: 'home' },
-    { view: 'true-cost', label: 'True Cost', icon: 'chart' },
-    { view: 'recovery', label: 'My Recovery', icon: 'journal' },
-    { view: 'support', label: 'Get Support', icon: 'support' },
-  ]
+  const navigation: {
+    view: NavigableView
+    label: string
+    icon: IconName
+  }[] = authenticated
+    ? [
+        { view: 'home', label: 'Home', icon: 'home' },
+        { view: 'true-cost', label: 'True Cost', icon: 'chart' },
+        { view: 'recovery', label: 'My Recovery', icon: 'journal' },
+        { view: 'support', label: 'Get Support', icon: 'support' },
+      ]
+    : [{ view: 'support', label: 'Get Support', icon: 'support' }]
 
   return (
     <div className="app-shell">
@@ -201,10 +236,10 @@ function App() {
         <a
           aria-label="LossLens home"
           className="brand"
-          href="#home"
+          href={authenticated ? '#home' : '#public-home'}
           onClick={(event) => {
             event.preventDefault()
-            setView('home')
+            setView(authenticated ? 'home' : 'landing')
           }}
         >
           <img
@@ -222,13 +257,7 @@ function App() {
               aria-current={view === item.view ? 'page' : undefined}
               className="nav-link"
               key={item.view}
-              onClick={() => {
-                if (item.view === 'home') {
-                  setView('home')
-                } else {
-                  navigate(item.view)
-                }
-              }}
+              onClick={() => navigate(item.view)}
               type="button"
             >
               <Icon name={item.icon} />
@@ -238,7 +267,7 @@ function App() {
         </nav>
 
         <div className="header-actions">
-          {session ? (
+          {authenticated && session ? (
             <>
               <span
                 className="account-email"
@@ -259,7 +288,8 @@ function App() {
                       setAuthNotice('Could not sign out. Please try again.')
                       setView('auth')
                     } else {
-                      setView('home')
+                      setAuthNotice('')
+                      setView('landing')
                     }
                   } catch {
                     setAuthNotice('Could not sign out. Please try again.')
@@ -274,17 +304,23 @@ function App() {
               </button>
             </>
           ) : (
-            <button
-              aria-current={view === 'auth' ? 'page' : undefined}
-              className="header-link"
-              onClick={() => {
-                setAuthNotice('')
-                setView('auth')
-              }}
-              type="button"
-            >
-              Sign in
-            </button>
+            <>
+              <button
+                aria-current={view === 'auth' ? 'page' : undefined}
+                className="header-link"
+                onClick={() => openAuth('login')}
+                type="button"
+              >
+                Log in
+              </button>
+              <button
+                className="header-link"
+                onClick={() => openAuth('signup')}
+                type="button"
+              >
+                Create account
+              </button>
+            </>
           )}
           <button
             className="header-link support-cta"
@@ -296,9 +332,60 @@ function App() {
         </div>
       </header>
 
-      <main id="home">
+      <main id={view === 'landing' ? 'public-home' : 'home'}>
         <div className="main-content">
-          {view === 'home' && (
+          {view === 'landing' && (
+            <section
+              aria-labelledby="public-title"
+              className="welcome-panel public-landing-panel"
+            >
+              <div className="welcome-copy">
+                <p className="eyebrow eyebrow-light">
+                  A clearer place to begin
+                </p>
+                <h1 id="public-title" tabIndex={-1}>
+                  Understand the cost.
+                  <br />
+                  Make room to reflect.
+                </h1>
+                <p className="welcome-description">
+                  LossLens helps you record gambling outcomes and make space
+                  for personal reflection. Your True Cost records and My
+                  Recovery information stay in this browser on this device;
+                  signing in does not upload or sync them.
+                </p>
+                <div className="public-landing-actions">
+                  <button
+                    className="button button-light"
+                    onClick={() => openAuth('login')}
+                    type="button"
+                  >
+                    Log in
+                  </button>
+                  <button
+                    className="button button-outline"
+                    onClick={() => openAuth('signup')}
+                    type="button"
+                  >
+                    Create account
+                  </button>
+                </div>
+              </div>
+              <div aria-hidden="true" className="welcome-art">
+                <span className="art-orbit orbit-one" />
+                <span className="art-orbit orbit-two" />
+                <span className="art-dot dot-one" />
+                <span className="art-dot dot-two" />
+                <span className="art-dot dot-three" />
+                <span className="art-lens">
+                  <span />
+                </span>
+              </div>
+              <p className="welcome-note">A thoughtful space, at your pace.</p>
+            </section>
+          )}
+
+          {view === 'home' && authenticated && (
             <>
               <section aria-labelledby="welcome-title" className="welcome-panel">
                 <div className="welcome-copy">
@@ -338,7 +425,7 @@ function App() {
             </>
           )}
 
-          {view === 'true-cost' && (
+          {view === 'true-cost' && authenticated && (
             <section aria-labelledby="true-cost-title" className="section-block" id="true-cost">
               <div className="section-heading">
                 <div>
@@ -354,7 +441,7 @@ function App() {
             </section>
           )}
 
-          {view === 'recovery' && (
+          {view === 'recovery' && authenticated && (
             <section
               aria-labelledby="personal-support-title"
               className="section-block support-section"
@@ -404,8 +491,11 @@ function App() {
               authNotice={authNotice}
               authReady={authReady}
               authUnavailable={authUnavailable}
+              initialMode={authStartMode}
+              key={authStartMode}
               onRecoveryComplete={() => setRecoveryAvailable(false)}
-              onReturnHome={() => setView('home')}
+              onReturnHome={() => navigate('home')}
+              onReturnPublicLanding={() => setView('landing')}
               recoveryAvailable={recoveryAvailable}
               recoveryLinkError={recoveryLinkError}
               session={session}

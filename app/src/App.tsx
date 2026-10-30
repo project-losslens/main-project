@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import './App.css'
 import AuthModule from './components/AuthModule'
 import GetSupportPage from './components/GetSupportPage'
 import HomeDashboard from './components/HomeDashboard'
 import PersonalSupportModule from './components/PersonalSupportModule'
+import PublicHomePage from './components/PublicHomePage'
 import TrueCostModule from './components/TrueCostModule'
 
 type IconName = 'home' | 'chart' | 'journal' | 'tools' | 'support' | 'arrow'
@@ -13,6 +14,12 @@ type View = 'landing' | 'home' | 'true-cost' | 'recovery' | 'support' | 'auth'
 type PrivateView = 'home' | 'true-cost' | 'recovery'
 type NavigableView = Exclude<View, 'landing'>
 type AuthStartMode = 'login' | 'signup'
+type NavigationItem = {
+  label: string
+  icon?: IconName
+  destination: NavigableView | 'landing'
+  anchorId?: string
+}
 
 function isPrivateView(view: View): view is PrivateView {
   return view === 'home' || view === 'true-cost' || view === 'recovery'
@@ -107,6 +114,8 @@ function App() {
   const [recoveryLinkError, setRecoveryLinkError] = useState(false)
   const [authNotice, setAuthNotice] = useState('')
   const [signingOut, setSigningOut] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const pendingLandingAnchor = useRef<string | null>(null)
   const authenticated = authReady && session !== null
 
   function openAuth(mode: AuthStartMode) {
@@ -116,6 +125,7 @@ function App() {
   }
 
   function navigate(nextView: NavigableView) {
+    setMobileMenuOpen(false)
     if (isPrivateView(nextView) && !authenticated) {
       setAuthStartMode('login')
       setAuthNotice(
@@ -126,6 +136,28 @@ function App() {
     }
 
     setView(nextView)
+  }
+
+  function navigateToLanding(anchorId?: string) {
+    setMobileMenuOpen(false)
+    if (view === 'landing') {
+      if (anchorId) {
+        const target = document.getElementById(anchorId)
+        target?.focus({ preventScroll: true })
+        const behavior = window.matchMedia(
+          '(prefers-reduced-motion: reduce)',
+        ).matches
+          ? 'instant'
+          : 'smooth'
+        target?.scrollIntoView({ behavior, block: 'start' })
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+      return
+    }
+
+    pendingLandingAnchor.current = anchorId ?? null
+    setView('landing')
   }
 
   useEffect(() => {
@@ -213,33 +245,55 @@ function App() {
       auth: 'auth-title',
     }
     const heading = headingId[view]
-    if (heading) document.getElementById(heading)?.focus()
+    if (heading) {
+      document.getElementById(heading)?.focus({ preventScroll: true })
+    }
+
+    const anchorId =
+      view === 'landing' ? pendingLandingAnchor.current : null
+    pendingLandingAnchor.current = null
+    if (anchorId) {
+      const frame = window.requestAnimationFrame(() => {
+        const target = document.getElementById(anchorId)
+        target?.focus({ preventScroll: true })
+        const behavior = window.matchMedia(
+          '(prefers-reduced-motion: reduce)',
+        ).matches
+          ? 'instant'
+          : 'smooth'
+        target?.scrollIntoView({ behavior, block: 'start' })
+      })
+      return () => window.cancelAnimationFrame(frame)
+    }
+
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [view])
 
-  const navigation: {
-    view: NavigableView
-    label: string
-    icon: IconName
-  }[] = authenticated
-    ? [
-        { view: 'home', label: 'Home', icon: 'home' },
-        { view: 'true-cost', label: 'True Cost', icon: 'chart' },
-        { view: 'recovery', label: 'My Recovery', icon: 'journal' },
-        { view: 'support', label: 'Get Support', icon: 'support' },
-      ]
-    : [{ view: 'support', label: 'Get Support', icon: 'support' }]
+  const navigation: NavigationItem[] = [
+    { destination: 'landing', label: 'Home', icon: 'home' },
+    {
+      anchorId: 'about-losslens',
+      destination: 'landing',
+      label: 'About',
+    },
+    ...(authenticated
+      ? [{ destination: 'home' as const, label: 'Dashboard', icon: 'home' as const }]
+      : []),
+    { destination: 'true-cost', label: 'True Cost', icon: 'chart' },
+    { destination: 'recovery', label: 'My Recovery', icon: 'journal' },
+    { destination: 'support', label: 'Get Support', icon: 'support' },
+  ]
 
   return (
     <div className="app-shell">
-      <header className="site-header">
+      <header className={`site-header${mobileMenuOpen ? ' menu-open' : ''}`}>
         <a
           aria-label="LossLens home"
           className="brand"
-          href={authenticated ? '#home' : '#public-home'}
+          href="#public-home"
           onClick={(event) => {
             event.preventDefault()
-            setView(authenticated ? 'home' : 'landing')
+            navigateToLanding()
           }}
         >
           <img
@@ -251,16 +305,42 @@ function App() {
           />
         </a>
 
-        <nav aria-label="Main navigation" className="main-nav">
+        <button
+          aria-controls="main-nav"
+          aria-expanded={mobileMenuOpen}
+          aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          className="mobile-menu-toggle"
+          onClick={() => setMobileMenuOpen((isOpen) => !isOpen)}
+          type="button"
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+
+        <nav aria-label="Main navigation" className="main-nav" id="main-nav">
           {navigation.map((item) => (
             <button
-              aria-current={view === item.view ? 'page' : undefined}
+              aria-current={
+                (item.destination === 'landing' &&
+                  !item.anchorId &&
+                  view === 'landing') ||
+                (item.destination !== 'landing' && view === item.destination)
+                  ? 'page'
+                  : undefined
+              }
               className="nav-link"
-              key={item.view}
-              onClick={() => navigate(item.view)}
+              key={item.label}
+              onClick={() => {
+                if (item.destination === 'landing') {
+                  navigateToLanding(item.anchorId)
+                } else {
+                  navigate(item.destination)
+                }
+              }}
               type="button"
             >
-              <Icon name={item.icon} />
+              {item.icon && <Icon name={item.icon} />}
               <span>{item.label}</span>
             </button>
           ))}
@@ -311,14 +391,14 @@ function App() {
                 onClick={() => openAuth('login')}
                 type="button"
               >
-                Log in
+                Login
               </button>
               <button
                 className="header-link"
                 onClick={() => openAuth('signup')}
                 type="button"
               >
-                Create account
+                Create Account
               </button>
             </>
           )}
@@ -332,57 +412,17 @@ function App() {
         </div>
       </header>
 
-      <main id={view === 'landing' ? 'public-home' : 'home'}>
+      <main
+        className={view === 'landing' ? 'public-home-main' : undefined}
+        id={view === 'landing' ? 'public-home' : 'home'}
+      >
         <div className="main-content">
           {view === 'landing' && (
-            <section
-              aria-labelledby="public-title"
-              className="welcome-panel public-landing-panel"
-            >
-              <div className="welcome-copy">
-                <p className="eyebrow eyebrow-light">
-                  A clearer place to begin
-                </p>
-                <h1 id="public-title" tabIndex={-1}>
-                  Understand the cost.
-                  <br />
-                  Make room to reflect.
-                </h1>
-                <p className="welcome-description">
-                  LossLens helps you record gambling outcomes and make space
-                  for personal reflection. Your True Cost records and My
-                  Recovery information stay in this browser on this device;
-                  signing in does not upload or sync them.
-                </p>
-                <div className="public-landing-actions">
-                  <button
-                    className="button button-light"
-                    onClick={() => openAuth('login')}
-                    type="button"
-                  >
-                    Log in
-                  </button>
-                  <button
-                    className="button button-outline"
-                    onClick={() => openAuth('signup')}
-                    type="button"
-                  >
-                    Create account
-                  </button>
-                </div>
-              </div>
-              <div aria-hidden="true" className="welcome-art">
-                <span className="art-orbit orbit-one" />
-                <span className="art-orbit orbit-two" />
-                <span className="art-dot dot-one" />
-                <span className="art-dot dot-two" />
-                <span className="art-dot dot-three" />
-                <span className="art-lens">
-                  <span />
-                </span>
-              </div>
-              <p className="welcome-note">A thoughtful space, at your pace.</p>
-            </section>
+            <PublicHomePage
+              onLogin={() => openAuth('login')}
+              onNavigate={navigate}
+              onSignup={() => openAuth('signup')}
+            />
           )}
 
           {view === 'home' && authenticated && (
@@ -502,13 +542,15 @@ function App() {
             />
           )}
 
-          <footer className="site-footer">
-            <span className="footer-brand">LossLens</span>
-            <p>
-              Personal records and reflections are stored in this browser on
-              this device by default.
-            </p>
-          </footer>
+          {view !== 'landing' && (
+            <footer className="site-footer">
+              <span className="footer-brand">LossLens</span>
+              <p>
+                Personal records and reflections are stored in this browser on
+                this device by default.
+              </p>
+            </footer>
+          )}
         </div>
       </main>
     </div>

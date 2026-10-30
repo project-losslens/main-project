@@ -1,0 +1,2201 @@
+===== PAGE 1 =====
+Precious + True Cost Build Specication (draft 5)
+Precious + True Cost
+Complete Build Specication
+A mobile web app that shows a bettor what betting is
+expected to cost them, and what to do about it
+Draft 5 | Prepared 28 October 2026 | Nothing here is nal
+How to Read This Document
+This document is written for a person who knows nothing about the project and has to build it,
+test it, collect its data, or present it. Read it in order the rst time. Afterwards use the table of
+contents to jump to the part you need.
+Who should read what.
+ Developer: Sections 4 to 9, 12 and 13, and Appendices A to C.
+ Data collector: Section 10.
+ Pilot lead: Sections 11 and 12.
+ Presenter: Sections 1, 2, 16 and 17.
+ Everyone: Sections 1 to 3, and Section 15 (what is still unknown).
+Conventions.
+ MUST , SHOULD and MA Y mean required, recommended and optional.
+ [VERIFY: text] marks a fact I could not conrm. Do not rely on it, and do not state it
+to anyone as true, until someone has checked it. The full list is in Section 15.
+ [TO DECIDE: text] marks a decision the team still has to make.
+ [ILLUSTRA TIVE: text] marks a number made up to show how a calculation works. It
+is not data. Never present an illustrative number as a nding.
+ Money is in Kenyan shillings (KES). Dates are written YYYY-MM-DD . Odds are decimal odds
+(for example 2.10), never fractional.
+ Field names such as stake are written in a typewriter font.
+What this document is not. It is not a claim that the product works, that it reduces gambling,
+or that any gure about Kenyan bookmakers is true. Nothing about real bookmaker margins is
+known until the team collects the sample described in Section 10.
+Contents
+1 Background and Goal 7
+1.1 The problem in plain language . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+1
+
+===== PAGE 2 =====
+Precious + True Cost Build Specication (draft 5)
+1.2 The goal . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+1.3 Why the numbers matter to the people judging it . . . . . . . . . . . . . . . . . . . 7
+2 Product Summary 7
+2.1 One sentence . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+2.2 The decision it changes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.3 The two parts and how they t . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.4 Design principles . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+2.5 Non-goals for version 1 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+3 Users and Scenarios 9
+3.1 Who uses it . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+3.2 Scenarios the build must support . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+4 Architecture and T echnology 9
+4.1 What is being built . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+4.2 Recommended stack . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+4.3 Module layout . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+4.4 Non-functional requirements . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+5 Data Model 11
+5.1 Bet . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+5.2 WeeklyTotal . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+5.3 Settings . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+5.4 MarginRow (static content) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+5.5 Provider and Resource (static content) . . . . . . . . . . . . . . . . . . . . . . . . . 13
+5.6 What is never stored . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+6 F eature Specications 14
+6.1 Navigation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+6.2 First use . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+6.3 F1. Data input . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 14
+6.3.1 F1.1 Type a bet (manual route) . . . . . . . . . . . . . . . . . . . . . . . . . 14
+6.3.2 F1.2 Weekly totals . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+6.3.3 F1.3 File or share import . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+6.3.4 F1.4 Screenshot import . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+6.3.5 F1.5 Review screen . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+6.4 F2. Margin estimate (lookup table use) . . . . . . . . . . . . . . . . . . . . . . . . 17
+2
+
+===== PAGE 3 =====
+Precious + True Cost Build Specication (draft 5)
+6.5 F3. Exact mode . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+6.6 F4. True Cost view (Home) . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+6.7 F5. Shilling projection . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 18
+6.8 F6. Short-run simulation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+6.9 F7. Weekly limit and nudge . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 19
+6.10 S1. Urge timer and breathing . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+6.11 S2. Resources . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+6.12 S3. Protected report . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+6.13 S4. Optional mood and trigger elds . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+6.14 S5. Talk to someone . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 22
+6.15 Settings and data control . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+7 Calculation Specication 23
+7.1 Notation and rounding . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+7.2 Per-bet quantities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 23
+7.3 Aggregation over a period . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+7.4 Weekly-totals mode . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+7.5 Projection . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 24
+7.6 Short-run simulation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+7.7 Assumptions shown in the app . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+7.8 Taxes . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26
+7.9 Test vectors . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26
+8 Import Specication 27
+8.1 Principles . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27
+8.2 The normalised row . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27
+8.3 Export and share parsers . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27
+8.4 Screenshot reading . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28
+8.5 Accuracy measurement . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+8.6 Failure behaviours . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+9 Privacy , Safety and Content 29
+9.1 What the app stores and where . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 29
+9.2 Rules the build must enforce . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30
+9.3 Legal checks needed before release . . . . . . . . . . . . . . . . . . . . . . . . . . . 30
+9.4 Safety rules . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30
+9.5 Writing style . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+3
+
+===== PAGE 4 =====
+Precious + True Cost Build Specication (draft 5)
+10 Building the Margin Lookup T able 31
+10.1 What the table answers . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+10.2 Before collecting anything . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+10.3 Sample size . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+10.4 What counts as one observation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32
+10.5 Recording sheet . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32
+10.6 Checks before calculating . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32
+10.7 Calculations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 32
+10.8 Output . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+10.9 The methods page . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+10.10Questions to answer from the data, for the pitch . . . . . . . . . . . . . . . . . . . 33
+10.11Keeping it current . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+10.12Limits to state . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+11 Pilot Protocol 33
+11.1 Purpose . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+11.2 Before starting . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 33
+11.3 Participants . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+11.4 Consent form must say . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+11.5 Procedure . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+11.6 Measures . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+11.7 If a participant becomes distressed . . . . . . . . . . . . . . . . . . . . . . . . . . . 34
+11.8 Data handling . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 35
+11.9 Reporting . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 35
+12 T esting Plan 35
+13 Build Plan and Roles 36
+13.1 Milestones in order . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 36
+13.2 Roles if the team grows . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 37
+14 Risk Register 37
+15 What Is Still Unknown: V erication Checklist 38
+16 Presenting the Project 39
+16.1 What the audience is . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 39
+16.2 Slide outline . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 39
+16.3 Demo script (about two minutes) . . . . . . . . . . . . . . . . . . . . . . . . . . . . 39
+4
+
+===== PAGE 5 =====
+Precious + True Cost Build Specication (draft 5)
+16.4 Questions to prepare for . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 40
+16.5 Rules for numbers in the pitch . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 40
+17 Considered and Not Included 41
+17.1 Recovery Support Cover . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 41
+17.2 Other items considered . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 41
+A Reference Calculation Code and T ests 42
+B Content File Examples 45
+C Interface W ording 46
+D Documents and Sources to Consult 47
+5
+
+===== PAGE 6 =====
+Precious + True Cost Build Specication (draft 5)
+Glossary
+T erm Meaning
+Bookmaker A company that accepts bets and sets the odds.
+Stake The money a person puts on one bet.
+Returned (amount
+returned)
+The money paid back to the person after a bet, including the stake if
+they won. A lost bet returns 0.
+Net result Returned minus stake. Negative means a loss.
+Turnover The total of all stakes over a period. A person who deposits KES
+1,000 and re-bets winnings can have a turnover far above KES 1,000.
+Decimal odds The total returned per KES 1 staked if the bet wins. Odds of 2.10
+mean a KES 100 winning stake returns KES 210.
+Market One question a bookmaker takes bets on, such as who wins this
+match, with an odd for each possible answer.
+Three-way market A market with three outcomes, for example home win, draw, away
+win.
+Two-way market A market with two outcomes, for example over or under 2.5 goals.
+Book total ( B) The sum of 1/odds over all outcomes of one market. A fair market
+has B = 1. Bookmakers set B above 1.
+Overround or margin
+( m)
+B − 1. It is the bookmaker's built-in edge, expressed as a fraction.
+Expected return
+factor ( f )
+The average amount returned per KES 1 staked for a bettor with no
+edge. For one bet, f = 1/B = 1/(1 +m).
+Expected loss Stake times (1 − f ). An average, not a prediction for any one bet.
+Leg One selection inside a multibet.
+Multibet
+(accumulator)
+One bet that combines several legs. It wins only if every leg wins.
+The odds are the product of the leg odds.
+Cash-out Settling a bet early for an amount the bookmaker oers, before the
+result is known.
+Void bet A bet cancelled and refunded. It carried no risk, so it is excluded
+from calculations.
+Lookup table A table of typical margins by bookmaker, built from odds the team
+collects. Used when the user does not enter a full market.
+Exact mode Entering every outcome's odds for one bet so its margin is computed
+exactly instead of looked up.
+Review screen The screen where the user checks and corrects imported or typed
+bets before they count.
+Accuracy badge A label on every number saying which input route produced it:
+export, screenshot, weekly totals or manual.
+PW A Progressive web app. A website that can be installed on a phone's
+home screen and work oine.
+Local-only Data is stored on the user's own device and is never sent to any
+server.
+Flat stake A simulation in which every bet has the same stake.
+6
+
+===== PAGE 7 =====
+Precious + True Cost Build Specication (draft 5)
+1 Background and Goal
+1.1 The problem in plain language
+Many people who bet on sports in Kenya do not know how much betting is expected to cost them.
+They see single results: a win on Saturday, a loss on Sunday. They rarely see the long-run average
+cost built into the odds.
+That cost exists because bookmakers do not oer fair odds. Here is the idea with the smallest
+possible example.
+A fair coin toss. A fair bookmaker would oer 2.00 on heads and 2.00 on tails. Then 12.00 + 12.00 =
+1, so B = 1 and the bettor gets back, on average, exactly what they stake.
+A real bookmaker. Suppose the bookmaker oers 1.90 on each side. Then
+B = 11.90 + 11.90 = 1.0526, m = 0.0526, f = 11.0526 = 0.95.
+On average, every KES 100 staked comes back as KES 95. The KES 5 dierence is the bookmaker's
+expected prot, and it is the bettor's expected loss.
+Multibets multiply the eect. For a bet with k legs, each with the same margin, the factor is
+f k. With f = 0.95 and four legs the factor is 0.954 = 0.8145. Each KES 100 staked comes back
+as about KES 81 on average. (The gure 0.95 is the example above, not a measured bookmaker
+margin.)
+1.2 The goal
+Build a small, private, mobile-friendly tool that:
+1. takes a person's own betting history with as little eort as possible,
+2. shows what that betting is expected to cost, next to what they actually lost,
+3. shows why a few wins or losses say little about the long run, and
+4. gives them a next step: set a weekly limit, wait out an urge, or talk to someone.
+1.3 Why the numbers matter to the people judging it
+The product will be presented to people who work with expected value, variance and pricing.
+They will ask where every gure comes from. The tool is built so that every gure has a stated
+method, a stated sample, and an accuracy label.
+2 Product Summary
+2.1 One sentence
+True Cost shows a bettor how much their betting is expected to cost them, compares it with what
+they actually lost, and helps them act on the gap.
+7
+
+===== PAGE 8 =====
+Precious + True Cost Build Specication (draft 5)
+2.2 The decision it changes
+Should this person set a betting limit, wait and talk to someone, or stop? The tool changes
+the decision by replacing a vague feeling with a number in shillings, shown as a range, with the
+method visible.
+2.3 The two parts and how they t
+ T rue Cost (the core): data input, margin estimate, expected loss, projection, simulation,
+weekly limit.
+ Precious (the support): urge timer, resources, Talk to someone, protected report. Each
+supporting feature either feeds the number or responds to it. A feature that does neither is
+not in version 1.
+2.4 Design principles
+1. Honest numbers. Every gure is an estimate with a range and a source. Nothing is shown
+with more precision than it has.
+2. Low eort. Typing every bet is the biggest reason people stop using trackers. Import rst,
+review second, type last.
+3. Private by default. All data stays on the device.
+4. No harm. The app never encourages betting, never rewards betting streaks, and shows
+help before anything else when someone says they cannot stop.
+5. No overclaiming. The app does not claim to treat, diagnose, cure or reduce gambling.
+2.5 Non-goals for version 1
+Not built, and not to be added without a written decision:
+ accounts, logins or any server that stores user data;
+ an AI chat assistant;
+ peer support rooms, matching, events or video features;
+ CBT lessons;
+ risk scores or relapse prediction;
+ M-Pesa monitoring or any reading of SMS or notications;
+ connecting to a bookmaker's account;
+ booking or payment for therapy inside the app;
+ any insurance product (Section 17).
+8
+
+===== PAGE 9 =====
+Precious + True Cost Build Specication (draft 5)
+3 Users and Scenarios
+3.1 Who uses it
+ Primary user: an adult (18 or over) in Kenya who bets on sports and wants to understand
+the real cost. [VERIFY: the legal minimum betting age in Kenya, and the app's
+age statement]
+ Secondary reader: a counsellor, relative or friend who receives a report the user chooses
+to share.
+ Phone: assume a mid-range or low-end Android phone, a small screen, limited data, and
+intermittent connection. Design for this rst.
+3.2 Scenarios the build must support
+Scenario A: import from a le. Amina's betting site lets her export her bet history. She
+taps Add your bets, chooses File or share, picks the le, checks the list on the review screen,
+corrects one wrong amount, and conrms. The le is deleted. She sees her True Cost summary.
+Scenario B: import from screenshots. Brian's site has no export. He takes screenshots of
+his bet history, selects them in the app, and the app reads the rows on his phone. Two elds are
+highlighted as unsure. He xes them and conrms. The images are deleted.
+Scenario C: weekly totals. Cheche does not want to log individual bets. Once a week he
+enters total staked, total returned, and that he mostly plays three-leg multibets. He sees a
+rougher estimate, labelled as such.
+Scenario D: feeling out of control. After a bad week, Dan reads the nudge showing his
+projected 12-month expected loss. He taps Talk to someone, sees helplines rst, then a list
+of providers, and opens one provider's own booking site. He then creates a password-protected
+report to show the counsellor.
+Scenario E: delete everything. Esther decides she does not want the app. She opens Settings,
+taps Delete all my data, conrms, and everything is gone from her phone immediately.
+4 Architecture and Technology
+4.1 What is being built
+A single-page web app that runs entirely in the phone's browser and can be installed to the home
+screen (a PW A). Version 1 has no backend . There is no server that receives, stores or processes
+user data.
+4.2 Recommended stack
+These are recommendations, not requirements. Any stack that meets the requirements in Sec-
+tion 4.4 is acceptable.
+Need Suggestion Why
+Language TypeScript Catches type mistakes in money and
+odds handling.
+9
+
+===== PAGE 10 =====
+Precious + True Cost Build Specication (draft 5)
+Need Suggestion Why
+UI framework React with Vite Common, fast to build, small output.
+Local storage IndexedDB through a
+small wrapper such as
+Dexie
+Holds structured records and survives
+reloads. [VERIFY: current
+wrapper choice and version]
+Oine Service worker (for
+example Workbox)
+Lets the app open and work without
+a connection.
+Charts Plain SVG drawn by hand,
+or a small chart library
+Keeps the bundle small. Charts are
+simple bars and a line.
+Image reading An on-device OCR library
+such as Tesseract.js
+(WebAssembly)
+Keeps images on the phone.
+[VERIFY: accuracy on real
+bookmaker screenshots]
+PDF with password A browser-side PDF library
+that supports encryption
+Report is built on the device.
+[VERIFY: which library
+encrypts correctly and opens in
+common readers]
+Unit tests Vitest or Jest Runs the calculation tests in
+Appendix A.
+End-to-end tests Playwright Runs the user ows in Section 12.
+Hosting Any static host (for
+example Vercel)
+No server code is needed.
+4.3 Module layout
+Keep the calculation code free of any user-interface code, so it can be tested on its own and
+checked line by line by a reviewer.
+src/
+calc/ pure functions, no UI, no storage
+margin.ts book total, overround, factors
+expectedLoss.ts
+aggregate.ts totals over a list of bets
+projection.ts
+simulate.ts seeded random number generator + simulation
+storage/ database access (IndexedDB)
+import/
+exportParsers/ one parser config per bookmaker
+screenshot/ image preparation, OCR, row parsing
+review/ the review screen logic
+content/ static JSON: marginTable, providers, resources, copy
+ui/ screens and components
+report/ protected PDF builder
+sw/ service worker
+tests/
+unit/ calculation tests (Appendix A vectors)
+e2e/ full flows
+tools/
+checkContent.ts fails the build on placeholder or stale content
+10
+
+===== PAGE 11 =====
+Precious + True Cost Build Specication (draft 5)
+4.4 Non-functional requirements
+Area Requirement
+Privacy No request leaves the device carrying user data. Enforce this with a
+content security policy that allows connections to the app's own
+origin only, and verify it with a network capture (Section 12). No
+analytics, no third-party scripts, no advertising code.
+Oine After the rst load, every core feature works with no connection:
+logging, review, True Cost, projection, simulation, limit, urge timer,
+resources, report. Providers' booking links need a connection and say
+so.
+Devices Works on current Chrome on Android and on the browsers of other
+phones your users have. Test on at least one low-end Android phone
+(about 2 GB of memory). [TO DECIDE: the exact list of
+devices and browser versions]
+Speed Interactive quickly on a mid-range phone on a slow connection. [TO
+DECIDE: a measured target, such as rst load under 3
+seconds on a throttled connection]
+Size Keep the rst download small because users pay for data. [TO
+DECIDE: a budget in kilobytes] . Load the OCR library only
+when a screenshot import starts.
+Touch Every tap target is at least 44 by 44 pixels. Forms use the right
+keyboard (numeric for money and odds).
+Accessibility Text contrast meets WCAG AA. Every control has a label a screen
+reader can read. Animations stop when the phone's reduce-motion
+setting is on. Colour is never the only signal.
+Language English in version 1. Plain words, short sentences. Swahili is parked
+(Section 17).
+Data loss Writes to storage are saved immediately. A reload never loses a
+conrmed bet.
+Time Dates are stored as YYYY-MM-DD in East Africa Time. Weeks run
+Monday to Sunday.
+5 Data Model
+All user records live in IndexedDB on the device. Static content ships with the app as JSON les.
+Identiers are random UUIDs created on the device.
+5.1 Bet
+One individual bet.
+Field Type Required Rule
+id UUID yes Created when the bet is rst conrmed.
+placedDate date yes Not in the future. Not more than 5 years
+in the past. [TO DECIDE: keep or
+change the 5-year limit]
+bookmaker text yes One of the supported bookmakers, or
+Other.
+11
+
+===== PAGE 12 =====
+Precious + True Cost Build Specication (draft 5)
+Field Type Required Rule
+betType enum yes single or multi .
+legs integer yes 1 for a single. At least 2 for a multibet.
+Upper limit [TO DECIDE: for
+example 30] .
+stake number yes Greater than 0. Two decimal places.
+Upper sanity limit [TO DECIDE: for
+example 1,000,000] .
+oddsTaken number yes Decimal odds greater than 1.00. For a
+multibet this is the combined odds.
+Upper sanity limit [TO DECIDE: for
+example 10,000] .
+result enum yes won , lost , cashout or void .
+amountReturned number yes 0 or more. 0 if lost. Equal to the stake if
+void. The cash-out amount if cash-out.
+marketFamily enum no threeWay , twoWay or notSure . Default
+notSure .
+marketOdds list of
+numbers
+no Exact mode. Every outcome's decimal
+odds for the one market. Singles only in
+version 1. At least 2 values, each greater
+than 1.00.
+inputRoute enum yes export , screenshot or manual .
+mood integer no 1 to 5.
+trigger enum no See Section 6.13.
+note text no Up to 280 characters.
+createdAt ,
+updatedAt
+datetime yes Set by the app.
+5.2 WeeklyTotal
+A week's summary entered instead of individual bets.
+Field Type Required Rule
+id UUID yes
+weekStart date yes Always a Monday. If the user picks
+another day, snap to that week's Monday.
+bookmaker text yes Needed to pick the margin row.
+totalStaked number yes Greater than 0.
+totalReturned number yes 0 or more.
+usualBetType enum yes single or multi .
+usualLegs integer yes 1 if single. At least 2 if multi.
+inputRoute enum yes Always weekly .
+createdAt ,
+updatedAt
+datetime yes
+Overlap rule. A WeeklyTotal and individual Bets must not cover the same week for the same
+bookmaker, because the same betting would be counted twice. When the user saves one that
+overlaps the other, show: You already have entries for this week. Keep the weekly total, keep the
+12
+
+===== PAGE 13 =====
+Precious + True Cost Build Specication (draft 5)
+individual bets, or cancel? Apply only the chosen option.
+5.3 Settings
+Field Type Rule
+weeklyLimit number or
+null
+Weekly stake limit in KES. Null if none set.
+lastBookmaker ,
+lastStake
+text, number Remembered to speed up entry.
+privacyAcceptedOn date or null Set when the user taps I understand on rst use.
+lastNudgeAt datetime or
+null
+Used to cap nudges at one per 24 hours.
+moodTrackingOn boolean Default false. Shows mood and trigger elds when
+true.
+5.4 MarginRow (static content)
+One row of the lookup table. Built by the team (Section 10). Shipped as the le marginTable.json .
+The user cannot edit it.
+Field Type Meaning
+bookmaker text Matches the Bet bookmaker values.
+marketFamily enum threeWay , twoWay or all . The all row pools every
+market family for that bookmaker.
+n integer Number of markets in the sample for this row.
+medianMargin number Median overround across those markets ( m).
+p25Margin number 25th percentile of the overround.
+p75Margin number 75th percentile of the overround.
+collectedFrom ,
+collectedTo
+date First and last collection dates.
+sufficient boolean True only if n is at least the minimum sample size
+(Section 10).
+notes text Method notes shown on the How we estimated
+margins page.
+A le-level header holds version , builtOn , isTestData , and the method text. When isTestData
+is true, every screen that uses the table shows a banner: TEST DATA. NOT REAL MARGINS.
+The build MUST fail if a release build ships with isTestData true.
+5.5 Provider and Resource (static content)
+See Section 6.14 and Appendix B.
+5.6 What is never stored
+Names, phone numbers, bookmaker account numbers or logins, M-Pesa numbers, balances, loca-
+tion, device identiers. If an import contains these, the reader MUST drop them before anything
+is saved.
+13
+
+===== PAGE 14 =====
+Precious + True Cost Build Specication (draft 5)
+6 Feature Specications
+Each feature lists its purpose, where it appears, what it does step by step, the rules and messages,
+edge cases, and tests that show it is nished. Exact wording for messages is collected in Appendix
+C.
+6.1 Navigation
+Bottom bar with four items: Home (True Cost summary), Add , T ools (urge timer, weekly limit,
+resources) and More (protected report, how we estimate, settings, delete data). A button labelled
+I need help now is visible from every screen. It opens the Talk to someone page (S5) at the
+helplines section.
+6.2 First use
+1. Welcome screen: one sentence on what the app does, one sentence on privacy: Your data
+stays on this phone. We do not collect it.
+2. An age statement: This app is for adults. [VERIFY: the exact wording required]
+3. Button I understand. Save privacyAcceptedOn .
+4. Go to the Add screen.
+Done when: the welcome screen appears once, never again after acceptance, and can be reread
+from More.
+6.3 F1. Data input
+Purpose. Get the user's bets into the app with the least eort.
+Entry point. The Add tab shows four large buttons, in this order:
+1. File or share (an export or shared text from the betting site)
+2. Screenshot (a photo of the bet history)
+3. Weekly totals
+4. Type a bet
+Under the buttons, a line: Not sure? Start with weekly totals. It takes 30 seconds.
+All routes end at the review screen (F1.5), except weekly totals, which has its own conrm
+step.
+6.3.1 F1.1 Type a bet (manual route)
+Target time: under 20 seconds for a typical single.
+Label Control Behaviour and validation
+Date date picker Default today. Not in the future. Message: The date
+can't be in the future.
+14
+
+===== PAGE 15 =====
+Precious + True Cost Build Specication (draft 5)
+Label Control Behaviour and validation
+Bookmaker select Default the last one used. List the supported bookmakers
+plus Other.
+Bet type two-way
+toggle
+Single or Multibet. Default Single.
+Legs number
+stepper
+Shown only for Multibet. Minimum 2. Message below
+minimum: A multibet has at least 2 legs.
+Stake (KES) numeric Greater than 0. Default the last stake, shown as a
+suggestion the user can change. Message: Enter an
+amount above 0.
+Odds taken numeric,
+decimal
+Greater than 1.00. Message: Odds must be above 1.00.
+Use decimal odds like 2.10. For a multibet the label
+reads Total odds.
+Result four buttons Won, Lost, Cash-out, Void.
+Amount
+returned
+(KES)
+numeric Shown when Won or Cash-out. Hidden and set to 0 when
+Lost. Hidden and set to the stake when Void. Message if
+empty: Enter the amount you received.
+Soft warning. If Result is Won and the amount returned diers from stake times odds by more
+than 5 percent, show: This diers from stake times odds. That can be normal if tax or a bonus
+applied. Check it. The user can continue. [TO DECIDE: keep 5 percent]
+More details (collapsed). Market family (Match result (3 outcomes), Two outcomes, Not
+sure), mood (only if moodTrackingOn ), trigger (same), note.
+Buttons. Save saves one bet and returns to the Add tab with a conrmation. Save and add
+another keeps the date, bookmaker and bet type and clears the rest.
+Edge cases.
+ Two identical bets in a day are allowed (people do place them).
+ A bet saved with a stake of 0.005 is rounded to 0.01.
+ Pasting a number with a comma, such as 1,500, is accepted.
+Done when. All validation messages appear in the right cases, a saved bet survives a reload,
+and a tester unfamiliar with the app enters a single in under 20 seconds on a phone.
+6.3.2 F1.2 W eekly totals
+Label Control Behaviour and validation
+Week date picker Default this week. Shows Mon 20 Oct to Sun 26 Oct
+after a date is picked.
+Bookmaker select Required.
+Total staked
+(KES)
+numeric Greater than 0. Help text: Everything you staked this
+week, including winnings you bet again.
+Total returned
+(KES)
+numeric 0 or more.
+Usual bet type toggle Mostly singles or Mostly multibets.
+Usual legs stepper Only for multibets. Minimum 2.
+15
+
+===== PAGE 16 =====
+Precious + True Cost Build Specication (draft 5)
+Why the help text matters. Expected loss depends on turnover, not on deposits. If the user
+enters only what they deposited, the cost is understated. The help text must stay.
+Overlap. Apply the overlap rule from Section 5.2.
+Display . Wherever the result appears, show the lowest accuracy badge: Weekly total: rough
+estimate.
+6.3.3 F1.3 File or share import
+Goal. Read a le or shared text produced by a bookmaker's own export or share feature.
+Steps.
+1. The user taps File or share and chooses a le, or shares text to the installed app from the
+betting app. [VERIFY: whether an installed web app can receive a share on the
+user's phone]
+2. The app detects the bookmaker and format using the parser congs in Section 8.
+3. If a parser matches, it produces normalised rows and goes to the review screen.
+4. If no parser matches, show: We can't read this le yet. You can add your bets with a
+screenshot, weekly totals, or by typing. and show the other routes.
+5. After the user conrms on the review screen, delete the le from memory and any temporary
+storage.
+Rule. A parser is added for a bookmaker only after the team has at least 5 real sample exports
+from it (Section 8).
+6.3.4 F1.4 Screenshot import
+Goal. Read bet-history screenshots on the phone.
+Steps.
+1. The user taps Screenshot and picks 1 to 10 images.
+2. Show the notice: We read these images on your phone. They are not uploaded. They are
+deleted after you conrm.
+3. Process one image at a time (Section 8). Show progress.
+4. Produce rows with a condence ag per eld.
+5. Go to the review screen.
+6. On conrm or cancel, delete the images and any extracted text.
+F ailure behaviour. If an image yields no rows, say so by name: We couldn't nd bets in image
+2. Try a clearer screenshot, or use another route. Never invent rows.
+6.3.5 F1.5 Review screen
+Purpose. Nothing counts toward any number until the user conrms it.
+Layout.
+16
+
+===== PAGE 17 =====
+Precious + True Cost Build Specication (draft 5)
+ Top summary: 12 bets found. 3 need checking.
+ A list of rows. Each row shows date, bookmaker, bet type and legs, stake, odds, result and
+amount returned.
+ Fields marked low condence or missing are highlighted with a border and an icon, not
+colour alone.
+ Tap a row to edit it with the same form as F1.1.
+ A row that looks like a duplicate of an existing bet shows Possible duplicate.
+ Buttons: Conrm 12 bets and Discard.
+Rules.
+ Conrm is disabled while any required eld is missing or invalid.
+ A duplicate has the same bookmaker, date, stake, odds taken and amount returned as an
+existing bet. Ask: Skip possible duplicates? with Skip them and Add anyway.
+ On conrm, write all rows in one operation. If the write fails, write none and say so.
+ On conrm, set each bet's inputRoute .
+Measures recorded for the pilot (on the device, shown in the pilot only). Time from
+starting the import to conrming. Number of elds edited. See Section 11.
+6.4 F2. Margin estimate (lookup table use)
+Purpose. Provide the margin m for a bet when the user has not entered a full market.
+Selection algorithm. Given a bookmaker b and a market family ϕ (use all if the bet's family
+is notSure ):
+1. Find the row (b, ϕ). If it exists and sufficient is true, use it.
+2. Otherwise nd the row (b, all ). If it exists and sufficient is true, use it.
+3. Otherwise there is no estimate. The bet counts toward totals of staked and returned, but
+not toward expected loss, and the screen says so (3 bets have no margin estimate yet).
+Never fall back to a made-up number.
+Label. Next to any gure that used a row, show: Estimate from a sample of n markets, collected
+[from] to [to]. Tapping it opens How we estimated margins (More menu), which shows the
+method text from the table header.
+Done when. Each of the three branches is covered by a test, and a bet for a bookmaker with no
+row never produces an expected-loss number.
+6.5 F3. Exact mode
+Purpose. Let a user compute the exact margin for one single bet.
+Where. On a bet's edit screen: Add the full market for an exact gure.
+Input. A list of 2 or more odds elds (the app oers 3 by default and a + button). Every value
+must be greater than 1.00.
+17
+
+===== PAGE 18 =====
+Precious + True Cost Build Specication (draft 5)
+Output. Book total B, margin m = B − 1, expected return per KES 1 ( 1/B), shown live as the
+user types. Save the odds in marketOdds .
+Eect. For that bet, expected loss uses the exact f = 1/B and the range collapses to one value.
+Limit in version 1. Singles only. For a multibet, hide the option.
+Done when. Entering 2.10, 3.40, 3.60 shows B = 1.0481, m = 4.8% and an expected return of
+95.4 cents per shilling (test vector T1, Section 7).
+6.6 F4. True Cost view (Home)
+Purpose. The main screen. It answers: What has my betting cost, and what was it expected
+to cost?
+Period selector. Last 7 days, last 30 days, last 90 days, all time. Default last 30 days.
+Content, top to bottom.
+1. Headline. Your betting is expected to cost you about KES X to Y over this period. Use
+the range from Section 7.
+2. Cards. Total staked. Total returned. Actual result (returned minus staked). Expected
+result (the midpoint of the range, shown negative). Dierence between actual and expected.
+3. Explanation line under the dierence. Positive means you did better than average
+over this period. Short periods are mostly luck.
+4. Accuracy summary . Based on 12 bets from a le, 4 from screenshots, 1 weekly total.
+Each part carries its accuracy badge.
+5. Flags. A line for each that applies: multibets (approximate); cash-outs (cash-out margin
+not modelled); bets with no margin estimate.
+6. Projection (F5) and simulation (F6) panels.
+7. Always-visible note. Expected loss is an average. Short-run results can be better or
+worse.
+Empty state. If no bets: Add your bets to see what they're expected to cost. with a button
+to the Add tab.
+Bias note shown in How we estimated. People may log more when they lose, so the
+dierence can look worse than it is. Lead with the expected cost, and present the dierence as
+context.
+Done when. Totals match a hand calculation for the data set in test vector T11, and every ag
+appears in the right case.
+6.7 F5. Shilling projection
+Purpose. Show the expected cost over 1, 3 and 12 months at the user's current pace.
+Minimum data. At least [TO DECIDE: 10] individual bets, or at least [TO DECIDE: 2]
+weekly totals, covering at least [TO DECIDE: 14] days. Below that, show: Not enough data
+yet. Add a few more bets to see a projection.
+Method. Section 7, test vector T7.
+18
+
+===== PAGE 19 =====
+Precious + True Cost Build Specication (draft 5)
+Display . Three rows: In 1 month, In 3 months, In 12 months, each as KES X to Y. Label:
+Estimate from your own history at the same pace. Not a prediction.
+Done when. Test vector T7 reproduces exactly, and the minimum-data message appears below
+the limits.
+6.8 F6. Short-run simulation
+Purpose. Show why one good or bad run says little.
+Method. Section 7.
+Display . A bar chart with three bars: after 10 bets, 50 bets and 100 bets. The height is the
+share of simulated bettors who are ahead. Under it: Out of 100 people betting like you with no
+edge, about X would be ahead after N bets. Use the values the simulation produced. Never type
+an example number into the text.
+Inputs shown to the user. Based on a typical bet of KES [stake] at odds [O] with [k] leg(s).
+Tapping shows the formula and the assumptions.
+Reproducibility . The seed is xed at 12345 and the app says: The same inputs always give the
+same result.
+Errors. If the inputs make p greater than 1, show: We can't run the simulation with these
+gures. and log nothing else.
+Done when. Test vectors T8 and T9 are met within the stated tolerance and the exact output
+for seed 12345 matches.
+6.9 F7. Weekly limit and nudge
+W eekly limit.
+ Tools tab: Set a weekly limit (KES stake per week). The user may clear it.
+ A bar shows this week's turnover (Monday to Sunday) against the limit.
+ States: under 80% (neutral), 80% to 100% (You're close to your limit), over 100% (You're
+over your limit). Icons and words, not colour alone.
+ The app never blocks the user and never pretends to block betting on the bookmaker's site.
+Nudge. A card on the Home screen.
+ Shown when any of these holds: the rst time a projection is available; this week's turnover
+exceeds the limit; the limit has been exceeded for [TO DECIDE: 3] weeks in a row. At
+most once per 24 hours ( lastNudgeAt ).
+ Content. At your current pace, betting is expected to cost about KES X to Y over 12
+months.
+ Buttons. Set or lower my limit; Wait it out (urge timer); Talk to someone; How to
+self-exclude.
+ Dismiss. Not now hides it until the next trigger.
+Rules. The nudge never mentions winning, never suggests a bet, and never celebrates a betting
+streak.
+Done when. Each trigger shows the card once, the cap holds, and Not now works.
+19
+
+===== PAGE 20 =====
+Precious + True Cost Build Specication (draft 5)
+6.10 S1. Urge timer and breathing
+Urge timer.
+ A countdown of [TO DECIDE: 15 minutes] . [TO DECIDE: conrm the length is
+supported by a source before describing it as evidence-based]
+ The remaining time is computed from an end timestamp, not from counting seconds, so it
+stays correct when the screen turns o or the app is in the background.
+ Text while counting: Urges usually rise and then fall. You don't have to act on it.
+ Buttons: Breathing exercise, Talk to someone, and I still want to bet.
+ I still want to bet does not scold. It shows: That's okay to feel. Here are people you can
+talk to right now, then the helplines (S5).
+ When the countdown ends: The wave has passed for now. Want to set a limit or look at
+your numbers?
+Breathing exercise.
+ Box breathing: 4 seconds in, 4 hold, 4 out, 4 hold.
+ A circle grows, holds, shrinks, holds, with the words Breathe in, Hold, Breathe out,
+Hold.
+ With reduce-motion on, show the words and a plain counter, no animation.
+ No medical claims. Do not say it treats anything.
+6.11 S2. Resources
+Contents. Helplines, self-exclusion guides, counselling directory, support groups.
+Data. Stored in content/resources.json (Appendix B).
+Display rules.
+ Every phone number is a tappable call link.
+ Show the last checked date on every entry.
+ An entry with a check date older than [TO DECIDE: 90 days] shows Not recently
+veried.
+Content rules enforced by the build tool.
+ No entry may contain placeholder text such as XXX.
+ Every entry MUST have a name, contact method, verifiedBy , verifiedOn and source .
+ The build fails if any rule is broken.
+[VERIFY: every helpline number, hours, cost, website and self-exclusion instruc-
+tion. The earlier project document used placeholder numbers, and none of its listed
+numbers have been conrmed.]
+Self-exclusion guides. One page per bookmaker the app supports, with steps veried by some-
+one who followed them. If a step cannot be veried, say We haven't conrmed these steps and
+link to the bookmaker's own help page.
+20
+
+===== PAGE 21 =====
+Precious + True Cost Build Specication (draft 5)
+6.12 S3. Protected report
+Purpose. Let the user hand a counsellor or trusted person a summary, under their control.
+Flow.
+1. More → Create a report.
+2. Pick the period (same options as F4).
+3. Choose what to include. Default: True Cost gures only. Optional, o by default: list of
+individual bets; mood and trigger counts.
+4. Set a password. Show the strength rule and the no-recovery warning below.
+5. The app builds an encrypted PDF on the device.
+6. Use the phone's share sheet so the user picks how to send it. Remind: Send the password
+in a dierent message.
+Report contents.
+ Title, period, date created.
+ Totals: staked, returned, actual result, expected-loss range, projection.
+ Accuracy summary and the sample label from F2.
+ Optional sections as chosen.
+ Footer on every page: Estimate from self-entered or imported data. Not a clinical assess-
+ment.
+Password rules.
+ Minimum [TO DECIDE: 8] characters. Message: Use at least 8 characters.
+ Before setting: If you forget this password, it can't be recovered. You can make a new
+report.
+ After creation, state the limit: The password protects the le. It can't control what someone
+does after opening it.
+Rules.
+ Encryption happens on the device. Nothing is sent to a server.
+ The password is never stored.
+ The le is held in memory and handed to the share sheet. No copy is kept by the app.
+[VERIFY: that a browser-side library can produce a PDF encrypted with a strength
+that opens in common readers, and what the Data Protection Act requires when a
+person shares their own sensitive data]
+Done when. The PDF opens in two dierent readers with the right password, fails with a wrong
+password, and a network capture shows nothing uploaded.
+6.13 S4. Optional mood and trigger elds
+Purpose. Let a user see, privately, when expected cost and dicult feelings coincide.
+21
+
+===== PAGE 22 =====
+Precious + True Cost Build Specication (draft 5)
+Default. O. A toggle in Settings enables it.
+Mood scale. 1 (very low), 2 (low), 3 (okay), 4 (good), 5 (very good).
+T riggers (choose one). Boredom; Stress; Social pressure; Money pressure; Celebration; Adverts
+or promotions; Chasing a loss; Other.
+Display . Only counts, never interpretation: Stress: 6 bets. Boredom: 3 bets. Shown on the
+Tools tab when at least 10 bets have a trigger.
+Rules. No diagnosis. No inference such as you bet when you are depressed. Stored on the
+device only. Included in the report only if the user ticks it.
+6.14 S5. Talk to someone
+Purpose. Give a person who feels unable to stop a clear next step, without the app taking on
+the work of booking or running care.
+Entry points. The nudge, the urge timer, the permanent I need help now button, and the
+Tools tab.
+Page order (xed).
+1. If you need help right now: helplines, each a tap-to-call link.
+2. Support groups and counselling services: grouped by town or county and by cost (free,
+low cost, private).
+3. Book a session: providers who oer booking on their own sites.
+4. Self-exclusion: link to the guides in S2.
+Helplines always come rst, before any booking link.
+Provider entry (elds). Name; type (counsellor, psychologist, clinic, support group); town
+and county; cost band; whether they treat gambling-related problems (yes, no, or not stated);
+website for booking; phone; registration body and number; verifiedBy ; verifiedOn .
+Listing criteria shown on the page.
+ Proof of professional registration. [VERIFY: which body registers counsellors and
+psychologists in Kenya, and how to check a registration]
+ States that they treat gambling-related problems, or the page says the list is not specialised.
+ Contact details checked by a person within the last [TO DECIDE: 90 days] .
+Rules.
+ No payment for listing or ranking. Order is by town, then alphabetically.
+ Leaving the app. Before opening a provider's site, show: You're leaving the app. Nothing
+from your log is shared unless you choose to share it. Open the link in a new tab with no
+data in the address.
+ Disclaimer on the page. This app does not provide therapy and is not responsible for
+the services listed.
+ Links are checked by a person at least every [TO DECIDE: 90 days] . Show the
+last-checked date.
+ Oine. The page works oine. Booking links need a connection and say Needs internet.
+22
+
+===== PAGE 23 =====
+Precious + True Cost Build Specication (draft 5)
+ Optional hando. After the provider link opens, the page keeps a button: Create a
+protected report to share with a counsellor (S3).
+Done when. Helplines appear rst at every entry point, no provider without a verication date
+can appear, the leaving-the-app notice shows before every external link, and the page works with
+the connection o.
+6.15 Settings and data control
+ Delete all my data: conrm twice (Delete everything on this phone? This can't be
+undone.). Deletes all records and settings immediately, then returns to the welcome screen.
+No waiting period is needed because nothing is stored elsewhere.
+ Export my data (JSON): [TO DECIDE: decide whether to include in version 1] .
+ Privacy page: plain-language list of what is stored and where (Section 9).
+ Mood tracking toggle (S4).
+7 Calculation Specication
+This section is the single source of truth for every number the app shows. The reference code is
+in Appendix A. If code and this section disagree, x the code or raise the disagreement. Do not
+guess.
+7.1 Notation and rounding
+ Compute with full oating-point precision. Round only for display.
+ Display money as whole shillings with thousands separators, for example KES 1,548.
+Ranges are KES 1,200 to 1,900.
+ Display percentages to one decimal place in method text and to the nearest whole number
+in sentences.
+ s is a stake, r is an amount returned, O is decimal odds, k is the number of legs, m is a
+margin (overround), f is an expected return factor.
+7.2 Per-bet quantities
+Exact mode (a single bet with a full market entered).
+B =
+nX
+i=1
+1
+oi
+, m = B − 1, f = 1B , expected loss = s (1 − f ).
+Validation: n ≥ 2 and every oi > 1. Otherwise report an error and do not compute.
+Quick mode (margin from the lookup table). Take the margin triple (m25, m50, m75) from
+the selected row (Section 6.4). For each margin m,
+f (m, k) =
+ 1
+1 +m
+k
+, expected loss (m) =s
+ 
+1 − f (m, k)
+
+.
+The low value uses m25, the middle value uses m50, and the high value uses m75. Because a larger
+margin means a larger loss, low ≤ middle ≤ high.
+23
+
+===== PAGE 24 =====
+Precious + True Cost Build Specication (draft 5)
+Actual net. r − s.
+Exclusions and special cases.
+ V oid bets are excluded from every total (stake, returned, expected loss).
+ Cash-outs are included in staked and returned (the cash-out amount is the amount re-
+turned). Expected loss is computed for the original bet as placed. The cash-out's own
+margin is not modelled and the bet is agged.
+ No margin estimate: the bet counts in staked and returned but contributes nothing to
+expected loss, and is counted in the no margin estimate ag.
+ Multibets in quick mode assume every leg has the same margin m. They are agged
+approximate.
+7.3 Aggregation over a period
+Let the included bets be i = 1, . . . , N(void bets removed).
+S =
+X
+i
+si total staked
+R =
+X
+i
+ri total returned
+A = R − S actual net
+Lx =
+X
+i
+expectedLoss i(x), x ∈ {low , mid , high } expected loss
+D = A − (−Lmid ) =A + Lmid dierence
+Read D like this: positive means the user did better than the average, negative means worse.
+Bets with no estimate are left out of Lx but stay in S, R and A.
+7.4 Weekly-totals mode
+For one WeeklyTotal with total staked Sw, total returned Rw, usual legs k, and the margin triple
+from the row for the entered bookmaker (family all ):
+Lx = Sw
+ 
+1 − f (mx, k)
+
+, A w = Rw − Sw.
+These add into S, R, A and Lx with everything else for the period. Show the lowest accuracy
+badge on any total containing a weekly total.
+7.5 Projection
+Inputs. The set of bets and weekly totals in the period.
+Window. Let the earliest covered date be d0 and the latest covered date be d1. A bet covers its
+placedDate . A weekly total covers all 7 days of its week. Then
+windowDays = (d1 − d0) + 1, weeks = windowDays 7 .
+Require windowDays at least [TO DECIDE: 14] and at least [TO DECIDE: 10] bets (or [TO
+DECIDE: 2] weekly totals). Otherwise do not project.
+24
+
+===== PAGE 25 =====
+Precious + True Cost Build Specication (draft 5)
+Expected loss per week for each of low, mid, high:
+λx = Lxweeks .
+Projections. Over 1 month: λx × 52/12. Over 3 months: λx × 13. Over 12 months: λx × 52.
+Caution to show. It assumes the user keeps betting at the same pace and stakes. It is not a
+prediction.
+7.6 Short-run simulation
+Inputs, derived from the user's included bets.
+ Dominant bet type: the one with more bets (singles on a tie).
+ k: the most common number of legs among those bets (the smaller on a tie).
+ O: the median oddsTaken among those bets.
+ m: the turnover-weighted mean of the middle margin m50 of the rows used by the included
+bets.
+ Flat stake of 1 unit per bet.
+Win probability .
+f =
+ 1
+1 +m
+k
+, p = fO .
+This is the win probability that makes the expected return per unit staked equal f . Require
+0 < p≤ 1. If not, stop with the message in F6.
+Procedure.
+1. Use the seeded generator mulberry32 with seed 12345.
+2. Run R = 10,000 simulated bettors.
+3. For each bettor, for bet number n = 1, 2, . . . ,100, draw one random number in order. The
+bet wins if the number is less than p.
+4. At n ∈ {10, 50, 100}, the bettor is ahead if (number of wins) ×O > n. A tie is not ahead.
+5. Report, for each n, the share of bettors who are ahead.
+The order of draws and the strict inequality matter. If another implementation makes the draws
+in a dierent order, its exact outputs will dier from the test vectors but should stay within the
+tolerance below.
+7.7 Assumptions shown in the app
+ The bettor has no edge over the bookmaker.
+ Bets are independent.
+ In quick mode every leg has the table's typical margin.
+ Multibets using combined odds are approximate.
+ Expected loss is based on total staked (turnover), not deposits.
+ Cash-out margins are not modelled.
+25
+
+===== PAGE 26 =====
+Precious + True Cost Build Specication (draft 5)
+ The result is a range from the sample, not a certain gure.
+ Entry may be partial, which understates the real cost.
+7.8 Taxes
+[VERIFY: whether tax on stakes (excise) and tax on winnings apply at current rates,
+how they are deducted from returns, and whether they should change the expected
+loss] . Until checked, the app states: Taxes and bookmaker fees are not modelled separately.
+Amounts returned entered by users already reect any deduction the bookmaker made.
+7.9 Test vectors
+These numbers were produced by running the Appendix A code. A correct implementation must
+reproduce them. Margins marked illustrative in the inputs are test inputs, not bookmaker data.
+ID Input Expected output
+T1 Exact mode, odds 2.10, 3.40, 3.60,
+stake 500
+B = 1.04809, m = 0.04809, f = 0.95412,
+expected loss KES 22.94
+T2 Quick mode, [ILLUSTRA TIVE:
+m = 0.05] , single, stake 500
+f = 0.95238, expected loss KES 23.81
+T3 Quick mode, [ILLUSTRA TIVE:
+m = 0.05] , 4 legs, stake 500
+f = 0.82270, expected loss KES 88.65
+T4 Range, single, stake 500,
+[ILLUSTRA TIVE: m25 = 0.03,
+m75 = 0.07]
+low KES 14.56, high KES 32.71
+T5 Range, 4 legs, stake 500, same
+margins
+low KES 55.76, high KES 118.55
+T6 Weekly totals, Sw = 3000, single,
+[ILLUSTRA TIVE: m = 0.05]
+expected loss KES 142.86
+T7 Projection: 10 single bets of 500 over
+14 days, [ILLUSTRA TIVE:
+m = 0.05]
+per bet 23.81; total 238.10; per week
+119.05; 1 month 515.87; 3 months
+1,547.62; 12 months 6,190.48
+T8 Simulation: single, O = 2.00,
+[ILLUSTRA TIVE: m = 0.05] , seed
+12345, 10,000 runs
+p = 0.47619. Share ahead: 10 bets 0.3177,
+50 bets 0.3091, 100 bets 0.2807. Exact
+binomial values: 0.3199, 0.3157, 0.2818.
+Tolerance for another implementation:
+within 0.015 of the exact values
+T9 Simulation: 4 legs, O = 6.00,
+[ILLUSTRA TIVE: m = 0.05] , seed
+12345, 10,000 runs
+p = 0.13712. Share ahead: 0.4024, 0.2366,
+0.2025. Exact binomial values: 0.4075,
+0.2409, 0.2052. Same tolerance
+T10 Invalid inputs One odds value: error need ≥ 2 odds.
+Odds ≤ 1: error. Negative margin: error.
+Zero legs: error. p >1 in the simulation:
+error
+26
+
+===== PAGE 27 =====
+Precious + True Cost Build Specication (draft 5)
+ID Input Expected output
+T11 Aggregation, bookmaker margins
+[ILLUSTRA TIVE: m25 = 0.03,
+m50 = 0.05, m75 = 0.07] . Bets: (1)
+single, stake 500, lost, returned 0; (2)
+single, stake 300, won, returned 540;
+(3) three-leg multibet, stake 200, lost,
+returned 0; (4) single, stake 1000,
+cash-out, returned 600; (5) single,
+stake 100, void, returned 100
+Bet 5 excluded. S = 2000, R = 1140,
+A = −860. Llow = 69.40, Lmid = 112.95,
+Lhigh = 154.50. D = −747.05. Flags: 1
+multibet, 1 cash-out, 1 void excluded
+8 Import Specication
+8.1 Principles
+ Everything is read on the device. Nothing is uploaded.
+ Nothing counts until the user conrms on the review screen.
+ Never invent a value. If a eld cannot be read, leave it empty and ag it.
+ Add support one bookmaker at a time, only after real samples exist.
+ Drop personal data (names, phone numbers, account numbers, balances) before saving any-
+thing.
+8.2 The normalised row
+Every route produces rows in this shape before the review screen:
+{
+placedDate: "2026-10-24" | null,
+bookmaker: "..." | null,
+betType: "single" | "multi" | null,
+legs: 1 | 2 | ... | null,
+stake: 500.00 | null,
+oddsTaken: 2.10 | null,
+result: "won" | "lost" | "cashout" | "void" | null,
+amountReturned: 0.00 | null,
+confidence: { stake: "high" | "low" | "missing", ... one per field },
+source: "export" | "screenshot"
+}
+8.3 Export and share parsers
+When to build one. Only after the team holds at least 5 real exports or shares from that
+bookmaker, from dierent users and weeks, with personal details removed. [VERIFY: which
+Kenyan bookmakers oer an export or share, and what each contains]
+Parser conguration. Each bookmaker's parser is a data le, not code, so it can be xed
+without changing the app. The example below is [ILLUSTRA TIVE: an invented format,
+not any real bookmaker's] .
+27
+
+===== PAGE 28 =====
+Precious + True Cost Build Specication (draft 5)
+{
+"bookmaker": "ExampleBook",
+"kind": "csv",
+"delimiter": ",",
+"dateFormat": "DD/MM/YYYY",
+"columns": {
+"placedDate": "Date",
+"stake": "Stake",
+"oddsTaken": "Odds",
+"legs": "Selections",
+"result": "Status",
+"amountReturned": "Payout"
+},
+"resultMap": { "Won": "won", "Lost": "lost",
+"Cashed Out": "cashout", "Void": "void" },
+"dropColumns": ["Name", "Phone", "Account", "Balance"]
+}
+Algorithm.
+1. Read the le as text. Reject les over [TO DECIDE: 5 MB] .
+2. Choose the parser whose expected header row matches the le's header row. If none matches,
+stop and show the can't read this le yet message.
+3. For each data row, build a normalised row using the column map.
+4. Parse the date with the stated format. Parse numbers after removing currency words and
+thousands separators.
+5. Map the status through resultMap . An unknown status leaves result empty and agged.
+6. legs greater than 1 means betType is multi .
+7. Discard all columns in dropColumns and any column not mapped.
+8. Mark every eld high condence if it parsed cleanly, otherwise missing .
+Shared text. For text shared from a betting app, a parser cong has a list of patterns (regu-
+lar expressions with named groups). Treat the text the same way: one match makes one row.
+Unmatched text is ignored and reported as Some of the text couldn't be read.
+8.4 Screenshot reading
+Decision. Version 1 reads images on the device only. A cloud vision service is not used, because
+it would send sensitive images o the phone.
+Pipeline, per image.
+1. Load the image. If wider than 1600 pixels, scale it down.
+2. Convert to greyscale and raise contrast.
+3. Run OCR to get words, each with a position and a condence score.
+4. Group words into text lines by vertical position.
+5. Use the bookmaker's layout template (below) to nd each bet's block and pick out stake,
+odds, result, amount returned and date.
+28
+
+===== PAGE 29 =====
+Precious + True Cost Build Specication (draft 5)
+6. Set a eld's condence to low if the OCR word condence is below [TO DECIDE: 80
+percent] or the text did not match the expected pattern for that eld (for example no
+digits where an amount is expected).
+7. Leave a eld empty and missing if nothing plausible was found.
+8. Release the image from memory.
+Layout template (one per bookmaker). A template holds: how to recognise the bet-history
+screen; how to split the screen into one block per bet; for each eld, a label to look for and a
+pattern for its value; and which screen regions contain personal details, to be ignored. Build a
+template only from at least 5 real screenshots from dierent phones. [VERIFY: whether the
+bookmakers' apps allow screenshots at all]
+Memory . Process one image at a time. Revoke image URLs when nished. Do not keep extracted
+raw text after the review screen closes.
+Known limits to tell the user. Small text, glare and cropped screens reduce accuracy. Layout
+changes after an app update can break a template, which is why the review screen is required.
+8.5 Accuracy measurement
+For each route and bookmaker, during testing and the pilot, record:
+1. the number of elds read;
+2. the number read correctly before the user edited anything (compare with the user's nal
+conrmed value);
+3. the share of rows needing at least one edit;
+4. the time from starting the import to tapping Conrm.
+Report these with the sample size. Do not report an accuracy gure from fewer than 15 samples
+per bookmaker without saying the sample is small.
+8.6 Failure behaviours
+ Unreadable le or image: say which one, oer the other routes.
+ Partially read: show what was read, ag the rest.
+ Duplicate rows: the review screen handles them (F1.5).
+ Never fall back to guessing a value.
+9 Privacy, Safety and Content
+9.1 What the app stores and where
+Data Where How long Who can see it
+Bets and weekly
+totals
+Phone, IndexedDB Until the user
+deletes them
+Only the user, on that
+phone
+Settings (limit,
+defaults)
+Phone Until deleted Only the user
+29
+
+===== PAGE 30 =====
+Precious + True Cost Build Specication (draft 5)
+Data Where How long Who can see it
+Imported le or
+screenshot
+Phone memory Until the user
+conrms or cancels
+Only the user
+Extracted text from
+an image
+Phone memory Until the review
+screen closes
+Only the user
+Protected report le Phone memory,
+then the user's
+chosen sharing app
+The app keeps no
+copy
+The user and whoever
+they send it to
+Report password Not stored Never kept Only the user
+Margin table,
+providers, resources
+App les Updated with app
+releases
+Everyone (public content)
+9.2 Rules the build must enforce
+1. No network request carries user data. The content security policy allows connections to the
+app's own origin only. The only outbound navigation is a link the user taps.
+2. No analytics, no tracking, no advertising or third-party scripts, no fonts or images loaded
+from other sites.
+3. Delete imported les, images and extracted text after conrm or cancel.
+4. Strip personal details from imports before saving (Section 8).
+5. Delete all my data clears every store and is immediate.
+6. Do not claim encryption of stored data unless it is built and tested. Version 1 states only:
+Your data stays on this phone.
+7. If anyone later adds accounts, cloud sync, an AI assistant or human review of user data,
+stop and redo this section rst. It changes what is true.
+9.3 Legal checks needed before release
+[VERIFY: what the Kenya Data Protection Act requires for sensitive and health-
+related data held on a user's own device; whether registration or a notice is required;
+what consent must look like; and the position on a person sharing their own report] .
+Do not state that the app is compliant until a qualied person has conrmed it.
+9.4 Safety rules
+1. The app never encourages betting, oers tips, or shows odds as a suggestion to bet.
+2. No celebration of betting streaks. No rewards tied to betting activity.
+3. Anyone who says they cannot stop sees helplines rst, before any booking link or other
+message.
+4. The I need help now button is on every screen.
+5. No diagnosis, no labels such as addict, and no claim of treatment.
+6. No AI chat in version 1.
+30
+
+===== PAGE 31 =====
+Precious + True Cost Build Specication (draft 5)
+7. Help resources appear when the user taps I still want to bet, and when entries suggest
+unusually large stakes or very frequent betting. [TO DECIDE: the thresholds, to be
+set with a qualied person, not guessed by the team]
+8. Wording and the crisis path are reviewed by a qualied person (a counselling lecturer or a
+counselling service) before any user test.
+9. The disclaimer This app is not therapy and does not diagnose is on the welcome screen,
+the Talk to someone page and every report.
+9.5 Writing style
+ Plain words, short sentences, no jargon on the main screens.
+ Say expected and average, never you will lose.
+ A void addict, failure, relapse, weak, win back. Prefer slip or a hard week.
+ Never use shame or fear to push a decision.
+ The tone is a calm friend who is good with numbers.
+10 Building the Margin Lookup Table
+This is the data collector's section. The whole app's estimates rest on this table, so the method
+must be repeatable and documented.
+10.1 What the table answers
+For this bookmaker and this kind of market, what is the typical built-in margin? It is a measured
+sample, not a universal fact. It describes the sample, on the dates collected.
+10.2 Before collecting anything
+1. [VERIFY: whether the bookmaker's terms of use allow you to record displayed
+odds by hand, and whether you may publish the summary] .
+2. Collect by hand only. Do not use scripts that scrape a site.
+3. Choose the bookmakers: the two or three that your pilot users actually use. [TO DECIDE:
+the list]
+4. Choose the market families: three-way match result (for example home, draw, away) and
+two-way markets (for example over or under 2.5 goals).
+5. Choose the leagues and sports your users bet on most, so the sample matches real use. [TO
+DECIDE: the list]
+10.3 Sample size
+Pick the smallest sample per table row that you are willing to defend. [TO DECIDE: minimum
+number of markets per row; the project's working suggestion is 30, but this is a
+suggestion and not a statistical result] . If a row has fewer, set sufficient to false and let
+the app fall back to the bookmaker's all row, or to no estimate.
+31
+
+===== PAGE 32 =====
+Precious + True Cost Build Specication (draft 5)
+Collect over at least [TO DECIDE: 8 weeks] so the sample covers dierent weeks and match
+types. Record the dates.
+10.4 What counts as one observation
+One full market at one bookmaker at one time. Record every outcome's decimal odds.
+Include: pre-match markets, shown 20 to 28 hours before kicko (pick one time rule and keep
+it).
+Exclude: live (in-play) markets; boosted or special odds; suspended markets; markets with a
+missing outcome; outright winner markets with many outcomes (unless you decide to include a
+separate family for them).
+10.5 Recording sheet
+Use one spreadsheet. One row per observation.
+Column What goes in it
+sampleId A running number.
+collectedAt Date and time collected, in East Africa Time.
+collector Initials of the person who collected it.
+bookmaker Exactly as it appears in the app's list.
+sport , league For example football, and the league name.
+matchDate The match's date.
+marketLabel The market's name as shown.
+marketFamily threeWay or twoWay .
+odds1 , odds2 , odds3 Decimal odds, one per outcome. Leave odds3 empty for two-way.
+evidence File name of the screenshot of the odds. Keep these privately.
+notes Anything unusual.
+10.6 Checks before calculating
+1. Every outcome has an odd greater than 1.00.
+2. Each row has the right number of outcomes for its family.
+3. No duplicate (same bookmaker, match, market, time).
+4. A second person re-enters 10 percent of the rows from the evidence screenshots, and the
+team counts typing mismatches. Record the mismatch rate.
+10.7 Calculations
+For each observation, B = P 1/odds i and the margin is m = B − 1.
+For each (bookmaker, family) group and also for each bookmaker pooled as all :
+ n = number of observations;
+ median, 25th and 75th percentile of m, using linear interpolation between ranks (the same
+as the spreadsheet function PERCENTILE.INC );
+32
+
+===== PAGE 33 =====
+Precious + True Cost Build Specication (draft 5)
+ minimum and maximum, for the methods page;
+ rst and last collection dates.
+10.8 Output
+Export content/marginTable.json (Appendix B). Set isTestData to false only when the table
+is built from real observations. Write the method text in the header, in plain language.
+10.9 The methods page
+The How we estimated margins page must say, in plain language: what was measured, how
+many markets, from which bookmakers, over which dates, how outliers were treated, the checking
+mismatch rate, and the limits (odds change over time; this is a snapshot).
+10.10 Questions to answer from the data, for the pitch
+ Do margins dier across bookmakers? By how much?
+ Do margins dier between three-way and two-way markets?
+ If margins barely dier, a single gure per bet type may be enough and the table can be
+simplied.
+10.11 Keeping it current
+Margins change. Re-collect at least every [TO DECIDE: quarter] and update the table version
+and dates. The app shows the collection dates beside every estimate.
+10.12 Limits to state
+The sample is not random. It reects the markets you chose and the time you collected. Do not
+describe it as the Kenyan market.
+11 Pilot Protocol
+11.1 Purpose
+Learn whether real bettors can use the tool quickly, whether imports work on their phones, and
+whether seeing the expected cost changes what limit they say they would set. It is a small usability
+and attitude study, not a clinical trial.
+11.2 Before starting
+1. [VERIFY: whether the university requires ethics approval for research with
+people who bet] . Get it before recruiting if required.
+2. A qualied person reviews the materials and the distress plan.
+3. Prepare a consent form in plain English (and Swahili if needed).
+33
+
+===== PAGE 34 =====
+Precious + True Cost Build Specication (draft 5)
+11.3 Participants
+Adults (18 or over) who bet. A small group, for example [TO DECIDE: 5 to 15] . Do not
+recruit anyone who says they are in crisis. Do not oer rewards tied to betting. Anyone who joins
+is told the app does not treat gambling problems.
+11.4 Consent form must say
+What the study is; that taking part is voluntary and they can stop any time; what will be recorded
+(their own timing and edits, answers to questions, no account details); that screenshots and les
+are shown only with personal details covered or removed; that data is stored under a code, not a
+name; who sees it; when it will be deleted; and where to get help.
+11.5 Procedure
+1. Brieng (15 minutes). Explain the study. Collect consent. Install the app.
+2. Before-use question. What weekly stake limit would you set for yourself today? Record
+the number (or none).
+3. Import tasks, timed. For each route the participant can use (le, screenshot, weekly
+totals, typing), time from rst tap to Conrm, count edits, and note where they hesitate.
+4. Use for about a week. The participant logs or imports as they choose.
+5. After-use questions. Show their True Cost screen. Ask: What weekly stake limit would
+you set now? Record the number. Ask what was confusing, what they would change, and
+whether they would keep using it.
+6. Usability scale. Ask the 10-item System Usability Scale.
+7. Debrief. Give the helplines and the Talk to someone list.
+11.6 Measures
+Measure How
+Time to log or import Stopwatch, per route, in seconds.
+Import accuracy Fields read correctly before editing, compared with nal values.
+Where people stop Observation notes.
+Stated limit before and
+after
+The two numbers from the questions.
+Usability System Usability Scale score.
+Understanding Ask them to explain the headline range in their own words.
+Note errors.
+11.7 If a participant becomes distressed
+Stop the session. Give the helplines and the counsellor contact. Do not continue until they say
+they are ready, and oer to end the study. A trained person is reachable during every session.
+[TO DECIDE: who that person is]
+34
+
+===== PAGE 35 =====
+Precious + True Cost Build Specication (draft 5)
+11.8 Data handling
+Use participant codes, not names. Keep consent forms separate from data. Store on an encrypted
+drive. Delete raw screenshots after accuracy has been counted. Delete everything at the date
+promised in the consent form.
+11.9 Reporting
+Report the number of participants, the median and range of times, import accuracy per route, the
+before and after limits, and the usability score. State plainly that it is a small, short, self-selected
+sample. Do not claim that the tool reduces betting.
+12 Testing Plan
+T est What to do Pass when
+Calculation vectors Run T1 to T11 from Section 7.9 as
+automated tests.
+Every value matches to the
+stated decimals.
+Properties Automated: a higher margin never
+gives a lower expected loss; more
+legs never gives a lower expected
+loss; scaling stakes scales the loss
+linearly.
+All hold for random inputs.
+Simulation check Compare simulation shares with
+exact binomial values.
+Within 0.015 for T8 and T9.
+Validation Try every invalid value in Section 6. Each shows the specied message
+and nothing is saved.
+Review screen Conrm, discard, edit, duplicate
+handling.
+Nothing counts until conrm. A
+failed save writes nothing.
+Import parsers Run each parser on its real samples. Output matches hand-checked
+rows. Unknown les show the
+message.
+Screenshot reading Run on real screenshots from
+several phones.
+Accuracy measured and
+recorded. Failures never invent a
+value.
+Oine Turn the connection o after rst
+load.
+All core features work. Booking
+links say Needs internet.
+Privacy network
+test
+Use the browser's network panel
+during a full ow.
+No request carries user data. No
+third-party hosts are contacted.
+Delete test Add data, delete all, reload. Nothing remains in storage.
+Protected report Create a report, open it in two
+readers.
+Right password opens it. Wrong
+one fails. No upload.
+Content check Run the content tool. Fails on any placeholder, missing
+verication date, or test-data
+margin table in a release build.
+Accessibility Screen reader, large text, reduce
+motion, contrast checker.
+All controls labelled. Text
+readable. Animations stop.
+Low-end phone Run the main ows on a
+low-memory Android phone.
+No crashes. Imports nish.
+35
+
+===== PAGE 36 =====
+Precious + True Cost Build Specication (draft 5)
+T est What to do Pass when
+Time to log Time a new person typing a single
+bet.
+Under 20 seconds after one
+demonstration.
+13 Build Plan and Roles
+13.1 Milestones in order
+Do not start a milestone until the previous one meets its exit test.
+No. W ork Exit test
+M0 Settle the rst-priority checks
+in Section 15: taxes, legality
+and terms of collecting odds,
+data protection, ethics
+approval.
+Written answer for each, with the source named.
+M1 Project skeleton. Calculation
+module (Appendix A) with
+all tests.
+All test vectors pass automatically.
+M2 Storage and manual entry
+(F1.1), list of bets, delete all
+data.
+Section 6 validation messages work. A saved bet
+survives a reload.
+M3 True Cost view (F4) using a
+clearly marked test margin
+table.
+T11 matches. Banner TEST DATA shows.
+Release build fails with test data.
+M4 Weekly totals (F1.2) and the
+overlap rule.
+T6 matches. Overlap choices behave as specied.
+M5 Projection (F5) and
+simulation (F6).
+T7 to T9 match.
+M6 Weekly limit, nudge, urge
+timer, breathing (F7, S1).
+Each nudge trigger shows once. Timer survives a
+locked screen.
+M7 Resources and Talk to
+someone (S2, S5) with
+veried content.
+Content tool passes. Helplines rst on every entry.
+Works oine.
+M8 Protected report (S3). Opens in two readers. Wrong password fails.
+Nothing uploaded.
+M9 Real margin table from the
+collected sample (Section 10).
+isTestData false. Methods page published.
+Mismatch rate recorded.
+M10 Imports: export parsers rst,
+then screenshot reading, each
+only for bookmakers with
+real samples (Section 8).
+Accuracy measured on real samples. Review screen
+enforced.
+M11 Review by a qualied person;
+legal checks closed.
+Written sign-o or a list of required changes.
+M12 Pilot (Section 11). Results written up with sample size and limits.
+M13 Pitch preparation and
+rehearsal (Section 16).
+Two rehearsals with a sceptical reviewer.
+36
+
+===== PAGE 37 =====
+Precious + True Cost Build Specication (draft 5)
+13.2 Roles if the team grows
+ Builder: the app, M1 to M10.
+ Maths checker: owns Section 7, the test vectors and the simulation. Reviews every number
+shown.
+ Data and pilot lead: Sections 10 and 11.
+ Content and safety: resources, providers, wording, the reviewer.
+ Presenter: slides, demo and question rehearsal.
+One person can hold several roles. Do not let the same person both build and be the only one
+who checks a calculation.
+14 Risk Register
+Ratings are the author's judgement, not measurements.
+Risk Impact What to do
+Odds data cannot be
+collected or published
+legally
+High Check the terms rst (M0). If not allowed, use a
+smaller hand-collected sample for internal use and
+present only a summary, or ask permission.
+Margins barely dier by
+bookmaker or market
+Medium Simplify to one gure per bet type and say so.
+Screenshots cannot be
+read reliably
+High Make exports and weekly totals the main routes.
+Keep the review screen. Report the measured
+accuracy.
+No bookmaker oers an
+export
+Medium Rely on screenshots, weekly totals and manual entry.
+Apps block screenshots Medium Same as above. Test early.
+Users stop logging High Oer weekly totals, imports and pre-lled defaults.
+Measure drop-o in the pilot.
+Partial logging biases the
+result
+Medium Lead with expected cost and the projection. State
+the bias.
+A wrong helpline or
+provider is listed
+High Verify by hand, show check dates, fail the build on
+stale or placeholder entries.
+A user in distress meets
+an unsuitable message
+High Qualied review, helplines rst, no AI chat, tested
+crisis path.
+Data protection
+obligations missed
+High Check the law (M0, M11). Keep data local. Do not
+claim compliance early.
+Browser cannot encrypt
+PDFs properly
+Medium Test libraries (M8). If none works, say plainly that
+the report is not encrypted, or drop the password
+feature.
+Installed app cannot
+receive shared les
+Low Use the le picker and paste routes.
+Scope grows back into
+twelve features
+High Apply the scope rule in Section 2.3. Anything
+outside it goes to Section 17.
+Numbers presented that
+were not measured
+High Quote only measured values. Mark every example as
+illustrative.
+37
+
+===== PAGE 38 =====
+Precious + True Cost Build Specication (draft 5)
+15 What Is Still Unknown: Verication Checklist
+Nothing here is conrmed. Fill in the last two columns as items are checked.
+No. T o check How to check Result and source
+1 Taxes on stakes and
+winnings, and how they aect
+returns
+Ocial tax authority
+publications and the
+bookmaker's own terms; ask a
+tax-literate lecturer
+2 Whether odds may be
+recorded by hand and a
+summary published
+Read each bookmaker's terms
+of use; ask the regulator or a
+lawyer if unclear
+3 Data Protection Act duties
+for this app
+Read the Act and the data
+commissioner's guidance; ask a
+qualied person
+4 University ethics approval for
+the pilot
+Ask the research oce
+5 Legal minimum age for
+betting and the app's age
+wording
+Ocial gambling legislation and
+regulator
+6 Every helpline number,
+hours, cost and website
+Call or message each one; record
+the date and who checked
+7 Self-exclusion steps for each
+supported bookmaker
+Follow the steps yourself or nd
+an ocial page
+8 Which body registers
+counsellors and psychologists,
+and how to check a
+registration
+Ask a counselling lecturer; nd
+the ocial register
+9 Which bookmakers oer an
+export or share, and what it
+contains
+Try each one with your own
+account and look at the output
+10 Whether bet-history screens
+show total staked
+Look at your own history
+screens
+11 Whether bookmaker apps
+block screenshots
+Try on several phones
+12 Whether an installed web
+app can receive a shared le
+or text
+Build a tiny test and try it on
+target phones
+13 Which PDF library encrypts
+correctly in the browser
+Build a test; open the result in
+several readers
+14 OCR accuracy on real
+bookmaker screenshots
+Run on real samples, count
+errors
+15 Whether margins dier across
+bookmakers and markets
+Analyse the collected sample
+16 How common multibets are
+among your users
+Ask pilot participants; ask the
+people you test with
+17 The margin on cash-outs Needs its own sample; leave
+unmodelled in version 1
+18 A source for the urge-timer
+length
+Find a published source before
+calling it evidence-based
+38
+
+===== PAGE 39 =====
+Precious + True Cost Build Specication (draft 5)
+No. T o check How to check Result and source
+19 Whether a similar
+expected-cost tool already
+exists for Kenyan bettors
+Search app stores and the web,
+and ask people
+20 Thresholds for showing help
+resources
+Decide with a qualied person
+16 Presenting the Project
+16.1 What the audience is
+Working actuaries, insurers and academics. They will ask how often, why not all at once, what
+exists already, and where the numbers come from. Prepare answers in numbers, and say we don't
+know yet where that is true.
+16.2 Slide outline
+1. Problem. People see single wins and losses, not the average cost.
+2. The idea in one example. Odds of 1.90 each side give an expected return of 95 cents per
+shilling (the worked example in Section 1.1).
+3. Multibets multiply it. The factor is f k (use the gure from your measured table when
+you have it).
+4. What the tool does. Import, review, True Cost, projection, simulation, limit, help.
+5. Live demo (script below).
+6. How the margins were measured. Method, sample size, dates, the checking mismatch
+rate, and the ndings from Section 10.
+7. Why a few bets say little. The simulation output.
+8. Safety and privacy . Local-only data, helplines rst, no AI chat, reviewed wording.
+9. Evidence so far. The pilot, with sample size and limits.
+10. What we don't know. The open items in Section 15.
+11. Next steps. Parsers for more bookmakers, a cash-out sample, Swahili, and referral partners.
+16.3 Demo script (about two minutes)
+1. Open the app. Show the Add screen.
+2. Import a prepared sample export and a screenshot. On the review screen, correct one
+wrongly read row.
+3. Conrm. Show True Cost: range, actual result, dierence, accuracy badges and ags.
+4. Open exact mode on one bet and enter a full market. Show the margin.
+5. Show the projection and the simulation.
+6. Show the weekly limit, the nudge, the urge timer and Talk to someone.
+39
+
+===== PAGE 40 =====
+Precious + True Cost Build Specication (draft 5)
+7. Create a protected report and open it with the password.
+Have a recorded backup of the demo in case the phone or connection fails.
+16.4 Questions to prepare for
+Question Answer to prepare
+Where do the margin gures
+come from?
+Our own hand-collected sample. State the number of
+markets, bookmakers and dates, and the checking
+mismatch rate.
+Why trust an average margin
+for one user's bet?
+It is an estimate with a range, labelled as such. Exact
+mode removes the assumption for any single bet.
+How do you handle
+multibets?
+The margin compounds per leg. Estimates are labelled
+approximate when only combined odds are entered, and
+we state the equal-margin assumption.
+What about cash-outs? Recorded and agged. Their margin is not modelled in
+version 1.
+Does expected loss mean the
+user will lose that amount?
+No, it is an average. The simulation shows how wide the
+spread is.
+What about taxes? Say what you veried, or state that they are not modelled
+separately.
+Where is the actuarial
+content?
+Overround, expected value, compounding over legs,
+variance, simulation, and sample-based estimation with
+ranges.
+How is data protected? Everything stays on the phone. No accounts, no server, no
+analytics.
+Is it safe to upload a betting
+history?
+Files and images are read on the device and deleted after
+conrmation. The user gives permission each time.
+How accurate is the
+screenshot reading?
+Quote the measured gures and the sample size. The user
+conrms every row.
+What happens if someone is
+in distress?
+Helplines come rst on every path. There is no chat
+feature. Wording was reviewed by a qualied person, if it
+was.
+Do you endorse the therapists
+listed?
+No. There are written listing criteria, no payment for
+placement, and a disclaimer.
+Why is there no insurance
+product?
+A trigger the user controls is not an insurable event. See
+Section 17.
+Where is the evidence it
+changes behaviour?
+Only the small pilot on stated limits. We do not claim
+reduced gambling.
+What exists already? Say what your search in item 19 of the checklist found.
+16.5 Rules for numbers in the pitch
+ Quote only numbers you measured or calculated from stated inputs.
+ Never present an example margin as a bookmaker's margin.
+ Never say the tool reduces gambling or helps people recover.
+ Always say the sample size next to any estimate.
+40
+
+===== PAGE 41 =====
+Precious + True Cost Build Specication (draft 5)
+17 Considered and Not Included
+17.1 Recovery Support Cover
+A small xed benet toward counselling, paid when a user's logged data crosses a threshold or
+they self-exclude. Not included.
+ The trigger is not an insurable event. A data threshold depends on the user's own
+stakes and entries, so it can be gamed. Self-exclusion is the user's own choice.
+ Adverse selection. Buyers would be the people most likely to trigger it, so the pure
+premium could approach the benet. A small pilot cannot estimate a frequency.
+ V erication conicts with local-only data. Paying a claim needs proof, which means
+data leaving the device.
+ Regulatory position unveried. Licensing, and any rules on cover linked to gambling
+behaviour.
+ Costs. Verication and payment costs on a small benet may exceed the margin. Not
+priced.
+What the product oers instead is the Talk to someone page (S5).
+17.2 Other items considered
+Idea Why it is out of version 1
+Browser extension reading
+bet slips
+Most betting is on phones, where extensions are limited.
+Pages change often, so a reader breaks. May breach
+bookmaker terms. Broad permissions are hard to defend.
+Connecting to a
+bookmaker's account or
+asking for logins
+Not possible without the bookmaker's cooperation. Collecting
+logins is unsafe and likely breaches terms.
+Reading SMS or M-Pesa
+messages
+A web app cannot read them. A native app faces heavy store
+restrictions. An M-Pesa statement shows deposits, not
+turnover.
+Asking users to screenshot
+odds before each bet
+The same chore as typing. The team collects odds for the
+table instead.
+In-app therapist booking
+and payment
+Makes the team responsible for who is listed, payments and
+records. Links out instead.
+AI companion chat Safety, privacy and review obligations the team cannot meet
+yet.
+Risk score or relapse
+prediction
+No data to build or validate it. A generic score was already
+ruled out.
+Gamied streaks and
+community challenges
+Risk of rewarding betting activity.
+Peer rooms, matching,
+events, video diaries
+Not needed to defend the core. Need moderation and
+safeguarding.
+CBT lesson modules A large separate content project that needs clinical review.
+Swahili and Sheng
+versions
+Valuable. Needs translation review. Parked until version 1
+works.
+Cash-out margin model Needs its own sample.
+41
+
+===== PAGE 42 =====
+Precious + True Cost Build Specication (draft 5)
+Idea Why it is out of version 1
+Parsers for more
+bookmakers
+Added one at a time after real samples are collected.
+A Reference Calculation Code and Tests
+The code below implements Section 7. It was run, and all test vectors in Section 7.9 pass.
+Save the rst block as truecost.js and the second as tests.js in the same folder, then run
+node tests.js . The expected output is the single line PASS: all test vectors reproduced. A
+TypeScript version should keep the same formulas and the same order of random draws.
+A.1 truecost.js
+// truecost.js -- reference implementation of the True Cost calculations
+// All money values are in KES. Odds are decimal odds (e.g. 2.10).
+function bookTotal(odds) {
+if (!Array.isArray(odds) || odds.length < 2) throw new Error("need >= 2 odds");
+let b = 0;
+for (const o of odds) {
+if (!(o > 1)) throw new Error("odds must be > 1");
+b += 1 / o;
+}
+return b; // B
+}
+function overround(odds) { return bookTotal(odds) - 1; } // m = B - 1
+// Expected return per KES 1 staked, no edge, one bet
+function factorFromMargin(m, legs) {
+if (!(m >= 0)) throw new Error("margin must be >= 0");
+if (!Number.isInteger(legs) || legs < 1) throw new Error("legs must be integer >= 1");
+return Math.pow(1 / (1 + m), legs); // f
+}
+function factorExact(odds) { return 1 / bookTotal(odds); } // full market
+function expectedLoss(stake, f) { return stake * (1 - f); }
+function actualNet(stake, returned) { return returned - stake; }
+// Expected-loss range from low/high margins (e.g. 25th and 75th percentile)
+function expectedLossRange(stake, mLow, mHigh, legs) {
+return {
+low: expectedLoss(stake, factorFromMargin(mLow, legs)),
+high: expectedLoss(stake, factorFromMargin(mHigh, legs)),
+};
+}
+// Win probability that yields expected return factor f at odds O
+function winProbability(f, O) {
+const p = f / O;
+if (p > 1) throw new Error("inconsistent inputs: p > 1");
+return p;
+}
+// Deterministic PRNG (mulberry32)
+function mulberry32(seed) {
+let a = seed >>> 0;
+42
+
+===== PAGE 43 =====
+Precious + True Cost Build Specication (draft 5)
+return function () {
+a = (a + 0x6D2B79F5) >>> 0;
+let t = a;
+t = Math.imul(t ^ (t >>> 15), t | 1);
+t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+};
+}
+// Share of simulated flat-stake bettors with total return > total staked
+function simulateAhead(p, O, checkpoints, runs, seed) {
+const rand = mulberry32(seed);
+const maxN = Math.max(...checkpoints);
+const ahead = checkpoints.map(() => 0);
+for (let r = 0; r < runs; r++) {
+let wins = 0;
+for (let n = 1; n <= maxN; n++) {
+if (rand() < p) wins++; // one draw per bet, in order
+const idx = checkpoints.indexOf(n);
+if (idx !== -1 && wins * O > n) ahead[idx]++; // stake 1 per bet
+}
+}
+return checkpoints.map((n, i) => ({ bets: n, shareAhead: ahead[i] / runs }));
+}
+module.exports = { bookTotal, overround, factorFromMargin, factorExact,
+expectedLoss, actualNet, expectedLossRange, winProbability,
+mulberry32, simulateAhead };
+A.2 tests.js
+// tests.js -- run with: node tests.js (prints PASS or throws)
+const t = require("./truecost.js");
+function close(actual, expected, tol, label) {
+if (Math.abs(actual - expected) > tol) {
+throw new Error(label + ": got " + actual + ", expected " + expected);
+}
+}
+function throws(fn, label) {
+let threw = false;
+try { fn(); } catch (e) { threw = true; }
+if (!threw) throw new Error(label + ": expected an error");
+}
+// T1 exact mode
+const odds = [2.10, 3.40, 3.60];
+close(t.bookTotal(odds), 1.04809, 1e-5, "T1 B");
+close(t.factorExact(odds), 0.95412, 1e-5, "T1 f");
+close(t.expectedLoss(500, t.factorExact(odds)), 22.94, 0.005, "T1 loss");
+// T2, T3 quick mode
+close(t.factorFromMargin(0.05, 1), 0.95238, 1e-5, "T2 f");
+close(t.expectedLoss(500, t.factorFromMargin(0.05, 1)), 23.81, 0.005, "T2");
+close(t.factorFromMargin(0.05, 4), 0.82270, 1e-5, "T3 f");
+close(t.expectedLoss(500, t.factorFromMargin(0.05, 4)), 88.65, 0.005, "T3");
+// T4, T5 ranges
+const r1 = t.expectedLossRange(500, 0.03, 0.07, 1);
+close(r1.low, 14.56, 0.005, "T4 low");
+close(r1.high, 32.71, 0.005, "T4 high");
+const r4 = t.expectedLossRange(500, 0.03, 0.07, 4);
+close(r4.low, 55.76, 0.005, "T5 low");
+43
+
+===== PAGE 44 =====
+Precious + True Cost Build Specication (draft 5)
+close(r4.high, 118.55, 0.005, "T5 high");
+// T6 weekly totals
+close(t.expectedLoss(3000, t.factorFromMargin(0.05, 1)), 142.86, 0.005, "T6");
+// T7 projection (10 bets of 500 over 14 days)
+const perBet = t.expectedLoss(500, t.factorFromMargin(0.05, 1));
+const perWeek = (perBet * 10) / (14 / 7);
+close(perWeek, 119.05, 0.005, "T7 week");
+close(perWeek * 52 / 12, 515.87, 0.005, "T7 1m");
+close(perWeek * 13, 1547.62, 0.005, "T7 3m");
+close(perWeek * 52, 6190.48, 0.005, "T7 12m");
+// T8 simulation, single, O = 2.00
+let p = t.winProbability(t.factorFromMargin(0.05, 1), 2.0);
+close(p, 0.47619, 1e-5, "T8 p");
+let sim = t.simulateAhead(p, 2.0, [10, 50, 100], 10000, 12345);
+close(sim[0].shareAhead, 0.3177, 1e-9, "T8 n=10");
+close(sim[1].shareAhead, 0.3091, 1e-9, "T8 n=50");
+close(sim[2].shareAhead, 0.2807, 1e-9, "T8 n=100");
+// T9 simulation, 4 legs, O = 6.00
+p = t.winProbability(t.factorFromMargin(0.05, 4), 6.0);
+close(p, 0.13712, 1e-5, "T9 p");
+sim = t.simulateAhead(p, 6.0, [10, 50, 100], 10000, 12345);
+close(sim[0].shareAhead, 0.4024, 1e-9, "T9 n=10");
+close(sim[1].shareAhead, 0.2366, 1e-9, "T9 n=50");
+close(sim[2].shareAhead, 0.2025, 1e-9, "T9 n=100");
+// T10 invalid inputs
+throws(() => t.bookTotal([2.0]), "T10 one odd");
+throws(() => t.bookTotal([1.0, 3.0]), "T10 odds <= 1");
+throws(() => t.factorFromMargin(-0.1, 1), "T10 negative margin");
+throws(() => t.factorFromMargin(0.05, 0), "T10 zero legs");
+throws(() => t.winProbability(0.99, 0.9), "T10 p > 1");
+// T11 aggregation (void bet excluded)
+const bets = [
+{ s: 500, k: 1, r: 0 },
+{ s: 300, k: 1, r: 540 },
+{ s: 200, k: 3, r: 0 },
+{ s: 1000, k: 1, r: 600 },
+];
+let S = 0, R = 0, lo = 0, mid = 0, hi = 0;
+for (const b of bets) {
+S += b.s; R += b.r;
+lo += t.expectedLoss(b.s, t.factorFromMargin(0.03, b.k));
+mid += t.expectedLoss(b.s, t.factorFromMargin(0.05, b.k));
+hi += t.expectedLoss(b.s, t.factorFromMargin(0.07, b.k));
+}
+close(S, 2000, 1e-9, "T11 S");
+close(R, 1140, 1e-9, "T11 R");
+close(R - S, -860, 1e-9, "T11 A");
+close(lo, 69.40, 0.005, "T11 low");
+close(mid, 112.95, 0.005, "T11 mid");
+close(hi, 154.50, 0.005, "T11 high");
+close((R - S) + mid, -747.05, 0.005, "T11 D");
+console.log("PASS: all test vectors reproduced");
+44
+
+===== PAGE 45 =====
+Precious + True Cost Build Specication (draft 5)
+B Content File Examples
+Examples only. Every value below is [ILLUSTRA TIVE: invented to show the shape] . None
+is real, and the build tool must reject placeholder content in a release.
+B.1 A bet record
+{
+"id": "b3f1c2e4-0000-0000-0000-000000000001",
+"placedDate": "2026-10-24",
+"bookmaker": "ExampleBook",
+"betType": "multi",
+"legs": 3,
+"stake": 200.00,
+"oddsTaken": 5.00,
+"result": "lost",
+"amountReturned": 0.00,
+"marketFamily": "notSure",
+"inputRoute": "manual",
+"createdAt": "2026-10-24T20:15:00+03:00",
+"updatedAt": "2026-10-24T20:15:00+03:00"
+}
+B.2 The margin table le
+{
+"version": 1,
+"builtOn": "2026-10-28",
+"isTestData": true,
+"method": "Plain-language method text goes here.",
+"rows": [
+{ "bookmaker": "ExampleBook", "marketFamily": "all",
+"n": 40, "medianMargin": 0.05,
+"p25Margin": 0.03, "p75Margin": 0.07,
+"collectedFrom": "2026-09-01", "collectedTo": "2026-10-20",
+"sufficient": true, "notes": "" }
+]
+}
+B.3 A provider entry (shape only)
+{
+"name": "Name of a real, verified provider",
+"type": "counsellor",
+"town": "Town", "county": "County",
+"costBand": "low",
+"treatsGambling": "yes",
+"bookingUrl": "https://provider-site.example/book",
+"phone": "a real, verified number",
+"registration": { "body": "registering body", "number": "number" },
+"verifiedBy": "initials",
+"verifiedOn": "2026-10-28",
+"source": "how it was verified"
+}
+45
+
+===== PAGE 46 =====
+Precious + True Cost Build Specication (draft 5)
+C Interface Wording
+Use these strings as written unless a qualied reviewer changes them.
+Where T ext
+Welcome, privacy Your data stays on this phone. We do not collect it.
+Welcome, scope This app is not therapy and does not diagnose.
+Add, hint Not sure? Start with weekly totals. It takes 30 seconds.
+Date error The date can't be in the future.
+Stake error Enter an amount above 0.
+Odds error Odds must be above 1.00. Use decimal odds like 2.10.
+Legs error A multibet has at least 2 legs.
+Returned error Enter the amount you received.
+Returned warning This diers from stake times odds. That can be normal if tax or a
+bonus applied. Check it.
+Weekly help Everything you staked this week, including winnings you bet again.
+Overlap You already have entries for this week. Keep the weekly total,
+keep the individual bets, or cancel?
+File not readable We can't read this le yet. You can add your bets with a
+screenshot, weekly totals, or by typing.
+Screenshot notice We read these images on your phone. They are not uploaded.
+They are deleted after you conrm.
+Image failed We couldn't nd bets in image 2. Try a clearer screenshot, or use
+another route.
+Review summary 12 bets found. 3 need checking.
+Duplicates Skip possible duplicates?
+Empty state Add your bets to see what they're expected to cost.
+Headline Your betting is expected to cost you about KES X to Y over this
+period.
+Dierence note Positive means you did better than average over this period. Short
+periods are mostly luck.
+Always-visible note Expected loss is an average. Short-run results can be better or
+worse.
+Estimate label Estimate from a sample of n markets, collected [from] to [to].
+No estimate 3 bets have no margin estimate yet.
+Multibet ag Multibets are approximate.
+Cash-out ag Cash-out margin is not modelled.
+Weekly total badge Weekly total: rough estimate.
+Projection missing Not enough data yet. Add a few more bets to see a projection.
+Projection label Estimate from your own history at the same pace. Not a
+prediction.
+Simulation line Out of 100 people betting like you with no edge, about X would be
+ahead after N bets.
+Simulation repeat The same inputs always give the same result.
+Simulation error We can't run the simulation with these gures.
+Limit close You're close to your limit.
+Limit over You're over your limit.
+46
+
+===== PAGE 47 =====
+Precious + True Cost Build Specication (draft 5)
+Where T ext
+Nudge At your current pace, betting is expected to cost about KES X to
+Y over 12 months.
+Urge timer Urges usually rise and then fall. You don't have to act on it.
+Still want to bet That's okay to feel. Here are people you can talk to right now.
+Timer ended The wave has passed for now. Want to set a limit or look at your
+numbers?
+Leaving the app You're leaving the app. Nothing from your log is shared unless you
+choose to share it.
+Provider disclaimer This app does not provide therapy and is not responsible for the
+services listed.
+Password short Use at least 8 characters.
+Password warning If you forget this password, it can't be recovered. You can make a
+new report.
+Password limit The password protects the le. It can't control what someone does
+after opening it.
+Password sharing Send the password in a dierent message.
+Report footer Estimate from self-entered or imported data. Not a clinical
+assessment.
+Delete conrm Delete everything on this phone? This can't be undone.
+Taxes line Taxes and bookmaker fees are not modelled separately.
+D Documents and Sources to Consult
+The team has not read these for this project. Find the current versions.
+ The Kenya Data Protection Act and the data commissioner's guidance.
+ Current Kenyan gambling legislation and the gambling regulator's rules and help informa-
+tion. [VERIFY: the regulator's current name and the current law]
+ The tax authority's guidance on tax applying to betting.
+ Each supported bookmaker's terms of use and help pages.
+ The regulator or professional body for counsellors and psychologists.
+ A published source for urge duration, if the timer length is described as evidence-based.
+ The documentation of whichever OCR and PDF libraries are chosen.
+47

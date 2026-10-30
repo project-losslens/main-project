@@ -1,0 +1,525 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=25mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{titlesec}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  urlcolor=blue!50!black,
+  pdftitle={LossLens Feature and Product Scope},
+  pdfauthor={LossLens Project Team}
+}
+
+\setlist[itemize]{leftmargin=*, itemsep=2pt, topsep=3pt}
+\setlist[enumerate]{leftmargin=*, itemsep=2pt, topsep=3pt}
+\setcounter{tocdepth}{2}
+
+\title{\textbf{LossLens}\\Feature Documentation and Product Scope}
+\author{Working specification for product planning and implementation}
+\date{Version 1.0 --- 29 October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{center}
+\textit{A local-first gambling-cost awareness and recovery-support platform for adults in Kenya.}
+\end{center}
+
+\tableofcontents
+\newpage
+
+\section{Purpose and Product Direction}
+
+LossLens combines the financial-awareness functions described in the True Cost specification with relevant support and recovery features from the Precious reference homepage. LossLens is a new application; it is not assumed to reuse the source code of the reference website.
+
+The product should help users understand their recorded gambling expenditure and outcomes, reflect on patterns, access practical self-help tools, and find appropriate human support. It must not encourage betting or imply that it can diagnose, treat, or cure gambling disorder.
+
+\subsection{Product principles}
+\begin{itemize}
+  \item \textbf{Local-first personal records:} personal bet records, financial calculations, diaries, mood entries, and personal reflections remain on the user's device by default.
+  \item \textbf{Supportive, not promotional:} no betting tips, suggested odds, bookmaker promotions, gambling streak rewards, shame-based messages, or pressure to continue using the app.
+  \item \textbf{Clear uncertainty:} estimates must be labelled as estimates, and the app must not fabricate bookmaker-margin data or present insufficient data as reliable.
+  \item \textbf{User control:} explain what is stored locally versus on the server; provide clear export and deletion controls where implemented.
+  \item \textbf{Kenyan context:} use East Africa Time (EAT), Kenya-relevant resources, accessible language, and locally appropriate examples.
+  \item \textbf{Accessible by design:} target WCAG 2.2 AA, visible focus, keyboard support, reduced-motion support, and touch targets of at least 44 by 44 CSS pixels.
+  \item \textbf{Adult audience:} intended for people aged 18 and over. The age statement is not proof of age verification.
+\end{itemize}
+
+\section{Scope and Architecture}
+
+\subsection{Application model}
+LossLens is planned as a responsive website and Progressive Web App (PWA). The application will include a user-facing experience, a backend for shared services, and a protected administration area.
+
+\subsection{Proposed technology}
+\begin{itemize}
+  \item Front end: React, TypeScript, and Vite.
+  \item Local personal storage: IndexedDB, using Dexie or an equivalent maintained library.
+  \item Backend: Node.js, Express, and TypeScript.
+  \item Shared server data: PostgreSQL or another deliberately selected relational database.
+  \item PWA/offline support: service worker and locally bundled assets.
+  \item Testing: unit tests for calculations, component/integration tests, and end-to-end tests.
+\end{itemize}
+These are proposed choices, not evidence that the stack has already been installed or implemented.
+
+\subsection{Data boundary}
+\begin{longtable}{p{0.30\textwidth}p{0.60\textwidth}}
+\toprule
+\textbf{Data category} & \textbf{Default handling} \\
+\midrule
+Personal bet history and calculations & Stored and processed on the user's device. Do not send to the backend by default. \\
+Personal diary, mood, triggers, notes, reflections, and future-self messages & Stored locally by default; not included in routine analytics or AI requests. \\
+Account and authentication data & Server-side only to the extent required for account features. Collect the minimum necessary. \\
+Shared community posts, reports, moderation actions, peer messages, and event RSVPs & Server-side processing is required if these features operate across users. Explain this clearly and define retention and deletion rules. \\
+Approved public content, CBT modules, support directory, and margin reference data & Managed or published through controlled content/admin workflows. \\
+Optional supporter/family sharing & Off by default. Share only the specific information the user chooses, with a clear preview and revocation path. \\
+\bottomrule
+\end{longtable}
+
+\textbf{Important:} the hybrid architecture changes the earlier Draft 5 assumption that no backend is needed. The implementation and privacy notices must reflect this new scope. Local-first storage does not automatically remove legal or data-protection obligations.
+
+\section{Public Website}
+
+The public website should explain the purpose of LossLens before asking a visitor to create an account.
+
+\subsection{Navigation}
+\begin{itemize}
+  \item Home
+  \item About
+  \item Features
+  \item Community
+  \item Crisis Help
+  \item Contact
+  \item Log In
+  \item Get Started
+\end{itemize}
+
+\subsection{Public content}
+\begin{itemize}
+  \item Clear explanation of gambling-cost awareness and recovery support.
+  \item Feature summaries for True Cost, diary, CBT learning, urge tools, community, and support resources.
+  \item Privacy summary explaining the difference between local personal data and server-based shared features.
+  \item Adult-use notice.
+  \item Contact information, Privacy Policy, Terms of Service, and Crisis Help page.
+\end{itemize}
+
+Statistics such as the proportion of Kenyan bettors who use sports betting, age distributions, or urge duration must not be published until their sources, dates, definitions, and applicability have been verified. Do not promise that the product is ``free forever'' unless that commitment is approved.
+
+\section{True Cost: Gambling Financial Awareness}
+
+\subsection{Record entry}
+Users should be able to enter a bet manually. Planned import routes include supported file imports, sharing a file to the app where supported, and screenshot-based extraction. All imported or extracted values must be shown for user review and confirmation before they affect calculations.
+
+A record may include:
+\begin{itemize}
+  \item Date placed.
+  \item Bookmaker name as entered by the user.
+  \item Bet type: single or multiple.
+  \item Legs and decimal odds, where available.
+  \item Stake.
+  \item Result: won, lost, cash-out, or void.
+  \item Amount returned.
+  \item Optional market family and private note.
+  \item Input route and timestamps for troubleshooting/audit purposes.
+\end{itemize}
+
+Do not request bookmaker passwords, M-Pesa numbers, identity documents, account balances, or unnecessary location/device identifiers. Imports should be reviewed and sensitive unrelated fields removed before saving.
+
+\subsection{Approved descriptive calculations for v1}
+The current documented v1 calculation direction is limited to actual recorded
+results and transparent descriptive comparisons. These measures are not
+validated actuarial measures of gambling-harm risk, probabilities, diagnoses,
+or predictions. The formulas below describe the selected reporting period;
+the record, income, and budget periods must match before a ratio is shown.
+
+Let:
+\begin{itemize}
+  \item \(S\) be the total confirmed stakes for the selected period.
+  \item \(R\) be the total confirmed returns for those bets.
+  \item \(N = R - S\) be the actual recorded net result.
+  \item \(L = \max(0, S - R)\) be the non-negative recorded net-loss amount.
+  \item \(I\) be the user's reported income remaining after essential expenses for the same period.
+  \item \(B\) be the user's chosen maximum tolerable net gambling loss for the same period. This is a loss limit, not a staking budget.
+\end{itemize}
+If \(N < 0\), show a net loss of \(S-R\); if \(N=0\), show break-even; and if \(N>0\), show a net gain of \(N\). \(L\) is zero for a break-even period or net gain. Clearly label these as actual results from recorded transactions, not expected losses or predictions. “Confirmed” totals describe only records the user has entered and confirmed; they do not prove that the period contains every transaction.
+
+Wagering intensity relative to available income is
+\[
+W_I = \left(\frac{S}{I}\right)\times 100\%.
+\]
+Explain that this measures how much the user staked relative to their reported available income. It does not measure the amount lost and is not, by itself, a validated gambling-harm risk score.
+
+Net-loss exposure relative to available income is
+\[
+F_I = \left(\frac{L}{I}\right)\times 100\%.
+\]
+Explain that this expresses the recorded net loss as a percentage of the user's reported income after essential expenses for the same period.
+
+Net-loss exposure relative to the personal loss budget is
+\[
+F_B = \left(\frac{L}{B}\right)\times 100\%,
+\qquad
+B_{\mathrm{remaining}} = B-L.
+\]
+A negative \(B_{\mathrm{remaining}}\) means the recorded net loss exceeded the user's stated loss limit. This comparison is personal to the user's chosen limit, not a validated gambling-harm threshold. Do not call \(B\) a staking budget.
+
+Only calculate \(W_I\) or \(F_I\) when a valid positive \(I\) covers exactly the same reporting period as the records. Only calculate \(F_B\) when a valid positive \(B\) covers that same period. A zero, missing, invalid, or mismatched denominator makes its ratio unavailable; display the reason rather than dividing by zero, substituting a value, or implying a percentage. \(B_{\mathrm{remaining}}\) can still be shown when a valid zero budget is explicitly entered, but \(F_B\) is unavailable. A missing budget makes both budget comparison outputs unavailable. A valid actual net result remains available even when a ratio cannot be calculated.
+
+\paragraph{Worked example.}
+With stakes of KSh 4,000, returns of KSh 2,500, available income after essential expenses of KSh 5,000, and a personal net-loss budget of KSh 1,000:
+\[
+N = 2{,}500-4{,}000=-1{,}500,\quad L=\text{KSh }1{,}500,
+\quad W_I=80\%,\quad F_I=30\%,\quad F_B=150\%,
+\quad B_{\mathrm{remaining}}=-\text{KSh }500.
+\]
+Describe the last value as the loss budget exceeded by KSh 500. Do not assign low, moderate, or high risk labels to these results.
+
+\subsection{Know more about your numbers}
+LossLens should explain financial results rather than present unexplained figures.
+\begin{enumerate}
+  \item \textbf{Immediate plain-language explanations:} Every displayed metric has a concise explanation near the value. State what it measures and what it does not measure, in language accessible without financial, actuarial, or statistical training.
+  \item \textbf{Detailed report:} Provide a ``Know more about your numbers'' action. Explain the metric, formula, user's recorded inputs, calculation, interpretation, and limitations. Compare earlier periods only when aligned, sufficiently complete data supports the comparison. Identify missing transactions and incomplete periods. Offer neutral reflection questions about affordability, personal limits, and changes in spending; do not shame, diagnose, or make unsupported claims about behaviour.
+  \item \textbf{Future AI companion explanations:} A future AI companion may explain a user's recorded metrics and changes over time. No companion name has been chosen; use only the generic term ``AI companion'' until the user explicitly approves a name. Clearly separate recorded facts from interpretations and suggestions. It must not invent missing transactions, financial circumstances, actuarial coefficients, or research findings; present descriptive percentages as probabilities of gambling harm or addiction; or diagnose users. Before any personal financial data is sent to an AI service, document informed consent, data minimization, recipient, purpose, retention/deletion, and privacy safeguards. Basic explanations and calculations must work without AI or an internet connection. AI explanations are a future feature, not part of the current implementation.
+\end{enumerate}
+Possible neutral prompts include: ``Did the recorded spending fit what you could afford this period?'' and ``Does the limit you chose still feel right for you?'' Prompts must remain optional and non-judgmental.
+
+\subsection{Accounting, period, and data-quality edge cases}
+\begin{itemize}
+  \item \textbf{Voids:} Draft 5 excludes void bets from stake/return performance totals, while this consolidated plan has left final accounting approval open. Treat exclusion as provisional and visibly flag void records until the rule is confirmed; do not silently count a void as a loss or as an ordinary returned stake.
+  \item \textbf{Cash-outs and refunds:} Draft 5 includes cash-outs in actual stake/return records and flags them; count a cash-out amount only once and do not add it again if already represented in the recorded return. How full/partial refunds and returned stakes are represented remains unresolved: flag affected records and do not silently classify a refund as a return, remove its stake, infer a missing amount, or treat a partial settlement as final.
+  \item \textbf{Bonus bets and promotional credits:} Their stake/value and return treatment remains undecided. Identify these records and do not silently treat promotional value as cash stake or cash return until a documented rule is approved.
+  \item \textbf{Possible duplicates:} Do not silently merge or delete possible duplicate transactions. Flag them for user review; retain both until the user resolves them, and prevent an unresolved duplicate from being presented as a verified complete total.
+  \item \textbf{Missing transactions and incomplete periods:} Label totals as totals of recorded entries, identify user-reported missing transactions or incomplete coverage, and do not imply that records are complete. Withhold unsupported comparisons and qualify any result based on incomplete coverage.
+  \item \textbf{Partial weeks/months and other ranges:} State the exact start and end dates. A partial period must not be presented as a complete week or month. Compare only periods with aligned duration and coverage; do not convert monthly income or budgets to weekly values, or vice versa, without an explicitly approved method.
+  \item \textbf{Mismatched or unavailable income/budget periods:} Do not compare a weekly record total to monthly income or a loss budget for a different range. Show the applicable ratio as unavailable with the reason. A valid actual net result can still be shown.
+  \item \textbf{Net gains and break-even:} Show the actual gain or break-even result. \(L\) remains zero, so loss-exposure ratios are zero only when their denominator is valid and positive; do not describe the result as a loss.
+\end{itemize}
+
+\subsection{Earlier odds/margin expected-loss proposal (deferred; not current v1 scope)}
+The following formulas preserve the earlier Draft 5/consolidated proposal for traceability. They conflict with the current v1 direction above and are not approved for implementation in the current v1. Do not calculate expected losses from stakes alone without a defensible, documented expected-return basis. A separate, explicit decision and the required evidence and qualified review are needed before reconsidering this proposal.
+
+For a single bet with decimal odds \(o_i\), define the implied-probability sum
+\[
+B_{\mathrm{book}} = \sum_{i=1}^{n}\frac{1}{o_i}.
+\]
+The overround or margin proxy is
+\[
+m = B_{\mathrm{book}} - 1,
+\]
+and the proportional fair-return factor used by the proposed model is
+\[
+f = \frac{1}{B_{\mathrm{book}}}.
+\]
+For stake \(S\), the proposed expected-loss estimate is
+\[
+L_{\mathrm{expected}} = S(1-f).
+\]
+This calculation is an estimate based on the specified margin model; it is not a prediction of the outcome of an individual bet.
+
+For quick estimates using margin \(m\) and \(k\) legs, the draft model proposes
+\[
+f = \left(\frac{1}{1+m}\right)^k,
+\qquad
+L_{\mathrm{expected}} = S(1-f).
+\]
+Quick-mode estimates for multiple bets must be labelled approximate. The margin assumptions and formula require actuarial review and validation before release.
+
+\subsection{Earlier expected-loss ranges and insufficient data proposal}
+Where an approved margin dataset provides lower-quartile, median, and upper-quartile margin estimates, calculate and show a range alongside the midpoint. If no sufficiently supported margin row exists, do not show an expected-loss estimate for that category. Actual totals may still be shown.
+
+If this proposal is reconsidered, the margin dataset would need to include, at minimum, bookmaker, market family, observation count, median margin, lower and upper quartiles, observation date range, sufficiency status, notes, dataset version, build date, test-data flag, and method. Production builds must fail validation if test data is marked as production data. These are not current v1 release requirements while the model is deferred.
+
+\subsection{True Cost dashboard}
+The True Cost dashboard should support:
+\begin{itemize}
+  \item 7-day, 30-day, 90-day, and all-time views.
+  \item Confirmed total staked, total returned, and actual net result, clearly identified as recorded data.
+  \item The approved descriptive ratios when their denominators and periods are valid, with nearby plain-language explanations and an unavailable state when they are not.
+  \item A ``Know more about your numbers'' detailed report, with completeness and missing-record limitations.
+  \item Flags for multiple bets, cash-outs, voids, possible duplicates, and incomplete periods.
+  \item Period comparisons only where durations, periods, and data coverage are aligned.
+\end{itemize}
+
+\subsection{Limits, nudges, and reports}
+\begin{itemize}
+  \item A user-selected maximum tolerable net-loss budget for a matching reporting period; keep it distinct from any staking/spending limit.
+  \item Optional reminders or nudges, disabled until the user opts in.
+  \item Locally generated PDF summary protected by a user-chosen password if technically and securely implemented.
+  \item Clear distinction between actual recorded results and any separately approved future estimate.
+\end{itemize}
+The app must not present a projection as a promise or encourage a user to place more bets.
+
+\subsection{Calculation evidence, limitations, and tests}
+These formulas are transparent descriptive financial measures, not an established or validated actuarial model of gambling-harm risk. Do not introduce unsupported thresholds or combined risk scores, and do not claim the formulas have been validated for Kenyan users. Do not calculate expected losses from stakes alone without a defensible, documented basis for expected-return assumptions. Any future predictive model requires an appropriate consented dataset, defined outcomes, justified methodology, and validation and calibration. PGSI must not be reproduced, modified, or embedded until applicable licensing/permission and suitable language/version questions have been resolved.
+
+The eventual calculation engine should be deterministic and independently testable. Financial settings should contain only user-reported available income and user-chosen net-loss budgets, explicitly associated with their reporting periods; do not infer either value. Keep personal records, settings, explanations, and reports on the user's device by default. Any future change to that data boundary requires explicit approval and informed consent.
+
+Add focused calculation/data-handling tests for:
+\begin{enumerate}
+  \item Stakes of KSh 2,000 and returns of KSh 600 produce a net loss of KSh 1,400.
+  \item Stakes of KSh 1,000 and returns of KSh 1,500 produce a net gain of KSh 500.
+  \item A KSh 1,400 net loss against KSh 7,000 available income produces 20\% income-relative exposure.
+  \item A KSh 1,400 net loss against a KSh 1,000 loss budget produces 140\% budget exposure.
+  \item Zero or missing denominators never cause division errors or misleading percentages; the ratio is unavailable with a reason while any valid actual net result remains visible.
+  \item Voids, duplicates, refunds, and cash-outs do not cause double-counting, according to the explicitly approved accounting rules.
+  \item Incomplete periods are clearly identified and are not represented as complete or used for unsupported comparisons.
+\end{enumerate}
+These tests verify calculation and data handling only; they do not validate a predictive risk model.
+
+\section{Personal Recovery and Reflection Tools}
+
+\subsection{Daily gambling diary}
+A private local diary for recording mood, triggers, money spent, coping strategies, and reflections. Mood/trigger recording should be optional and off by default if that remains the chosen product decision.
+
+\subsection{Recovery dashboard}
+Summaries may include diary completion, user-selected goals, spending patterns, and reflections. Avoid diagnostic labels, competitive streaks, or messages that shame users after a lapse.
+
+\subsection{CBT learning modules}
+The reference concept includes eight structured modules about triggers, unhelpful thinking patterns, coping strategies, and reflection exercises. Each module should contain:
+\begin{itemize}
+  \item A reviewed learning objective.
+  \item Plain-language educational content.
+  \item A practical exercise or reflection.
+  \item Optional progress tracking stored locally.
+  \item Appropriate signposting to qualified human support.
+\end{itemize}
+The eight modules and their final content must be written or reviewed by appropriately qualified people. Do not imply that completion is a clinical treatment.
+
+\subsection{Urge toolkit}
+\begin{itemize}
+  \item Optional urge timer.
+  \item Guided breathing exercise.
+  \item Thought-challenger prompts.
+  \item User-selected coping steps and links to support.
+\end{itemize}
+Timer duration and wording are configurable product decisions and must not be described as a clinically guaranteed method.
+
+\subsection{Monthly Mirror}
+A monthly reflection flow that helps users review patterns, difficult moments, helpful coping actions, and personal goals. The reflection should be private and locally stored by default.
+
+\subsection{Precious Pact / message to future self}
+A feature allowing a user to write a personal message to revisit during a difficult moment. The feature can be renamed to fit LossLens branding. The message remains local by default.
+
+\subsection{Future AI companion}
+The name of a possible AI companion has not been chosen. Use the generic term ``AI companion'' in planning and interface copy until the user explicitly approves a name. No AI companion is implemented in the current task. Before considering a future implementation:
+\begin{itemize}
+  \item Decide whether the companion is local or cloud-based.
+  \item Do not transmit personal bet history, diary entries, mood data, or trigger notes to an AI provider by default.
+  \item If a cloud provider is used, obtain meaningful consent, disclose the provider and data handling, minimise submitted data, and provide a non-AI alternative.
+  \item Do not claim the AI remembers a user unless that memory behaviour is actually implemented and clearly controlled.
+  \item Do not position the companion as a therapist, crisis service, or substitute for professional care.
+  \item Include clear escalation guidance for imminent danger or urgent support needs.
+\end{itemize}
+
+\section{Community and Shared Services}
+
+These features require server-side functionality if they are to work across different users. They therefore need separate privacy, security, moderation, and retention decisions.
+
+\subsection{The Circle}
+Anonymous or pseudonymous peer-support rooms for check-ins, coping support, celebrating progress, and discussing setbacks. Minimum safety features should include:
+\begin{itemize}
+  \item Community rules and consent before posting.
+  \item Report, block, and moderation tools.
+  \item A process for handling threats, harassment, harmful advice, and crisis posts.
+  \item Limits on personal information and clear warnings not to publish identifying details.
+  \item Retention and deletion rules for posts and moderation records.
+\end{itemize}
+
+\subsection{Whispers}
+A proposed temporary private peer chat lasting up to 48 hours. Before launch, define matching rules, abuse prevention, reporting, blocking, moderation access, message expiry, backups, and whether messages can be retained for safety/legal reasons. Do not promise complete anonymity or immediate deletion unless the system can guarantee it.
+
+\subsection{Events and workshops}
+A directory of support groups, workshops, and seminars with event details and RSVP functionality. Shared RSVPs should be stored on the server only to the extent required. Avoid publicly exposing attendee lists by default.
+
+\subsection{Family Portal}
+An optional way for a user to invite a trusted supporter and share specific information. It must:
+\begin{itemize}
+  \item Be off by default.
+  \item Show the user exactly what will be shared before consent.
+  \item Avoid giving supporters access to the full diary or betting history by default.
+  \item Allow the user to revoke access.
+  \item Explain what happens to information already seen, exported, or saved by the supporter.
+\end{itemize}
+
+\section{Kenya Resource Directory and Crisis Help}
+
+Provide a dedicated directory of verified support services, self-exclusion information, financial guidance, and relevant public agencies. Every entry should include source, last-verified date, hours, cost if confirmed, and instructions for access.
+
+The reference homepage supplied these details for review:
+\begin{itemize}
+  \item Befrienders Kenya: 0800 722 030, described in the reference text as 24/7.
+  \item NACADA Helpline: 1192, described in the reference text as 24/7.
+  \item ODPC Kenya: 0800 724 000, described in the reference text as Monday--Friday, 8:00--17:00.
+\end{itemize}
+\textbf{These details are unverified reference content, not approved publication copy.} Verify numbers, operating hours, cost, confidentiality statements, and service scope directly with authoritative sources before launch. The ODPC is a data-protection regulator, not a gambling crisis helpline; it must not be presented as crisis support. Add an emergency notice appropriate to the verified local context.
+
+Self-exclusion instructions and any named authority must be checked against current official guidance before publication.
+
+\section{Accounts, Reports, and Administration}
+
+\subsection{User accounts}
+Account registration and login are required only for features that need a cross-device or server-backed identity, such as shared community features, event RSVPs, or supporter access. The app should explain which local-first features can be used without an account, if implemented.
+
+\subsection{Profile and reports}
+Users may manage basic profile settings and generate a professional-looking PDF report from selected data. The report must be generated locally where feasible, previewed before saving or sharing, and must not include diary or sensitive details unless the user explicitly selects them.
+
+\subsection{Protected administration area}
+An admin dashboard is required for controlled management of:
+\begin{itemize}
+  \item Approved margin datasets and dataset versions.
+  \item CBT modules and reviewed educational content.
+  \item Resource directory entries and verification dates.
+  \item Public website content and announcements.
+  \item Events and workshops.
+  \item Community moderation, reports, and safety actions if community features are enabled.
+  \item Administrative roles, access logs, and configuration.
+\end{itemize}
+Admin access must use server-side authorization and role-based permissions. Hiding an admin link in the interface is not sufficient protection. Administrative actions that affect users or published data should be auditable. Do not expose personal local records to admins because those records should not be sent to the server by default.
+
+\section{Privacy, Security, and Data Protection}
+
+\subsection{Privacy requirements}
+\begin{itemize}
+  \item No advertising trackers or third-party analytics by default.
+  \item Avoid third-party scripts, external fonts, or remote images unless there is a reviewed, documented need.
+  \item Bundle OCR workers and language assets locally if screenshot OCR is implemented; test that no unexpected third-party requests occur.
+  \item Use a restrictive Content Security Policy and secure transport for server requests.
+  \item Explain local storage, server storage, AI-provider processing, retention, exports, and deletion in plain language.
+  \item Do not claim encryption, complete anonymity, zero data collection, or guaranteed deletion unless verified by implementation and testing.
+  \item Provide data deletion controls for local data and documented account/shared-data deletion workflows.
+\end{itemize}
+
+\subsection{Legal and governance gates}
+Before any public pilot or recruitment of participants:
+\begin{itemize}
+  \item Obtain qualified Kenyan data-protection advice on controller/processor roles, lawful basis, notices, retention, security, any required registration, and whether a Data Protection Impact Assessment is required.
+  \item Confirm applicable requirements with the Office of the Data Protection Commissioner (ODPC); local-only processing does not automatically remove legal obligations.
+  \item Confirm with JOOUST's relevant ethics review body whether the project, usability study, or pilot needs approval or a formal exemption.
+  \item Review terms and permissions before collecting or publishing bookmaker-specific margin observations. Do not scrape sites or use bookmaker logos without approval.
+  \item Obtain qualified review of the calculation model, user-facing claims, and CBT content.
+\end{itemize}
+
+\section{Technical Quality Requirements}
+
+\begin{itemize}
+  \item Personal calculations must be deterministic and covered by unit tests.
+  \item Data should persist immediately after a user saves an entry.
+  \item Dates use \texttt{YYYY-MM-DD} internally where appropriate; week summaries run Monday through Sunday, with local display in EAT.
+  \item Core local features should remain usable offline after the first successful load, subject to browser storage and service-worker limitations.
+  \item External resource links require internet access and should be labelled accordingly.
+  \item Test on low-end Android devices and modest connections.
+  \item Test keyboard access, screen-reader labels, contrast, focus order, zoom, and reduced motion.
+  \item Test data export, deletion, offline reload, backup/restore assumptions, and browser storage failure cases.
+  \item Use clear empty states and never substitute fabricated data for missing user records or margin data.
+\end{itemize}
+
+\section{Proposed Navigation and Main Screens}
+
+The primary signed-in application navigation should remain simple and use four destinations:
+\begin{itemize}
+  \item \textbf{Home:} today's recorded financial summary, a brief recovery-progress overview, and one optional next action.
+  \item \textbf{True Cost:} manual records, daily/weekly/monthly/all-time actual results, period-matched descriptive measures, explanations, and historical actual-result views.
+  \item \textbf{My Recovery:} optional daily check-ins, user-defined reduction or abstinence goals, progress based only on explicitly recorded days, and locally available urge-management tools.
+  \item \textbf{Get Support:} original self-guided learning material and a resource directory whose contacts and instructions remain unpublished until verified.
+\end{itemize}
+Keep detailed forms and analysis within their relevant destination rather than placing all metrics and tools on Home. This navigation does not approve accounts, backend features, community, or an AI service for v1.
+
+\begin{enumerate}
+  \item Public landing page.
+  \item Registration and login.
+  \item Home dashboard.
+  \item Add a bet / import records / review extracted data.
+  \item Bet history and filters.
+  \item Weekly, monthly, and all-time reports.
+  \item Recovery dashboard and daily diary.
+  \item CBT learning modules.
+  \item Urge toolkit.
+  \item Monthly Mirror and message to future self.
+  \item AI companion, only after privacy and safety decisions and an explicit naming decision.
+  \item Resource directory and Crisis Help.
+  \item Circle community.
+  \item Whispers temporary peer chat.
+  \item Events and workshops.
+  \item Family Portal.
+  \item Profile, settings, export, and deletion.
+  \item Protected admin dashboard.
+\end{enumerate}
+
+\section{Suggested Implementation Phases}
+
+\begin{longtable}{p{0.15\textwidth}p{0.75\textwidth}}
+\toprule
+\textbf{Phase} & \textbf{Scope and exit criteria} \\
+\midrule
+Phase 0: decisions & Finalise requirements, data boundaries, privacy/legal review plan, calculation rules, and release gates. No application code is assumed to exist yet. \\
+Phase 1: foundation & Create the application shell, routing, design tokens, responsive layout, tests, and local database. Confirm the project builds before adding business features. \\
+Phase 2: True Cost core & Manual bet entry, local storage, actual totals, the approved descriptive calculations, aligned-period financial settings, plain-language explanations, detailed reports, historical actual-result summaries, and calculation/data-handling tests. Expected-loss estimates are deferred pending separate approval and a defensible expected-return basis. \\
+Phase 3: import and reports & File import, optional screenshot OCR with confirmation, summaries, and local report generation. Do not add a projection/scenario tool until its assumptions and limitations have a defensible, documented basis and receive the required review. \\
+Phase 4: personal support & Optional local daily check-ins, user-defined reduction or abstinence goals, explicitly recorded gambling-free progress, simple urge tools, reviewed educational content, Monthly Mirror, future-self message, and verified resources. \\
+Phase 5: backend and admin & Authentication, server schema, protected admin routes, content/resource management, and margin dataset publishing. \\
+Phase 6: community & Circle, Whispers, events, and Family Portal only after moderation, consent, security, retention, and incident-response rules are ready. \\
+Phase 7: AI and release & Generic AI companion explanations only after provider/privacy/safety decisions, informed consent, and an explicit naming decision; accessibility, privacy, security, offline, and low-end-device testing before pilot. Basic calculations and explanations must work without AI or internet access. \\
+\bottomrule
+\end{longtable}
+
+\section{Open Decisions and Release Blockers}
+
+The following items must not be treated as settled simply because they appear in this document:
+\begin{itemize}
+  \item Final brand language, whether to name a future AI companion and any explicitly approved name, and the final names of reference features.
+  \item Whether registration is mandatory for any particular feature.
+  \item Backend hosting, database provider, authentication method, and operational cost.
+  \item AI provider, whether AI is cloud-based, exact data sent to it, and consent flow.
+  \item Whether Circle, Whispers, and Family Portal are included in the first release or deferred.
+  \item Final accounting rules for voids, partial settlements, cash-outs, bonuses, taxes, fees, and incomplete records.
+  \item Margin-data sampling method, minimum observation count, refresh cadence, and uncertainty thresholds.
+  \item Whether and how users report available income and personal net-loss budgets; how exact-period alignment, zero/missing values, partial periods, and period completeness are represented.
+  \item How possible duplicate transactions are identified and resolved without silent merging or deletion.
+  \item Treatment of refunds, promotional credits, partial settlements, and returns already included in cash-out amounts.
+  \item Whether to reconsider the earlier odds/margin expected-loss proposal after the current v1 descriptive direction; no margin estimate is part of current v1 scope.
+  \item Future AI companion provider, name (if any), consent flow, exact data sent, purpose, retention/deletion, and safeguards before any personal financial data could leave the device.
+  \item Verified crisis/resource contacts and self-exclusion instructions.
+  \item Legal advice on data protection and ethics approval/exemption for any pilot.
+  \item PDF protection method, export format, OCR accuracy threshold, and supported import formats.
+\end{itemize}
+
+\section{Acceptance Criteria for the First Usable Release}
+
+A first usable release should not be considered complete until:
+\begin{enumerate}
+  \item A user can add, edit, and delete a personal bet record stored locally.
+  \item The app calculates actual staked, returned, and net totals correctly for tested cases, and implements the approved descriptive formulas without division errors.
+  \item Every displayed metric has a nearby plain-language explanation; unavailable ratios state why, while valid actual results remain visible.
+  \item The detailed report identifies inputs, formula, calculation, limitations, and incomplete data; period comparisons use only aligned, sufficiently complete data.
+  \item Expected-loss estimates are not included in v1 unless separately approved with a defensible, documented expected-return basis and required review.
+  \item Imported/OCR-extracted values require user review before being saved.
+  \item The user can understand the difference between actual recorded results and any future separately approved estimate.
+  \item Personal bet and diary records are not transmitted to the backend by default; this is verified with network testing.
+  \item The privacy notice accurately describes all local and server-side data flows.
+  \item Support resources shown in the app have been independently verified and dated.
+  \item Core screens are usable on a low-end phone, with keyboard/accessibility checks completed.
+  \item There are no fake production margin values, unverified crisis claims, or unsupported clinical promises.
+\end{enumerate}
+
+\section{Change Log}
+
+\begin{itemize}
+  \item \textbf{Version 1.0 --- 29 October 2026:} consolidates True Cost financial-awareness requirements with selected Precious reference features; records the new hybrid local-first plus backend/admin direction; identifies privacy, safety, legal, and verification gates.
+  \item \textbf{Version 1.1 --- 29 October 2026:} documents approved descriptive financial measures and ``Know more about your numbers'' requirements; marks the earlier expected-loss proposal as deferred; adds edge cases, evidence limitations, and calculation/data-handling tests.
+  \item \textbf{Version 1.2 --- 29 October 2026:} keeps the future AI companion unnamed; defines four primary application destinations and records the local-first check-in, personal-goal, progress, and historical actual-result direction.
+\end{itemize}
+
+\vfill
+\noindent\textbf{Document status:} Working feature specification. It is a planning document, not evidence of completed implementation, legal approval, clinical validation, or verified support-service details.
+
+\end{document}

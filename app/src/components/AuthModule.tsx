@@ -1,9 +1,41 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 
 type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password'
 type Message = { tone: 'error' | 'success'; text: string }
+type SupabaseAuthError = { code?: string; message: string }
+
+const MINIMUM_PASSWORD_LENGTH = 6
+
+function getSupabaseErrorMessage(
+  error: SupabaseAuthError,
+  action: string,
+): string {
+  const code = error.code?.toLowerCase()
+
+  if (code === 'weak_password') {
+    return `${error.message} Use at least ${MINIMUM_PASSWORD_LENGTH} characters.`
+  }
+
+  if (
+    action === 'sign in' &&
+    (code === 'email_not_confirmed' ||
+      /email.*not.*confirm/i.test(error.message))
+  ) {
+    return `${error.message} Check your inbox for the verification link, then try signing in again.`
+  }
+
+  if (
+    action === 'sign in' &&
+    (code === 'invalid_credentials' ||
+      /invalid login credentials/i.test(error.message))
+  ) {
+    return `${error.message} Check your email and password, or request a password reset.`
+  }
+
+  return `${action} failed: ${error.message}`
+}
 
 type Props = {
   authClient: SupabaseClient | null
@@ -38,6 +70,7 @@ function AuthModule({
   const [confirmPassword, setConfirmPassword] = useState('')
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
+  const submissionInProgress = useRef(false)
   const activeMode = recoveryAvailable ? 'reset-password' : mode
   const visibleMessage =
     message ??
@@ -57,10 +90,23 @@ function AuthModule({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!authClient || pending) return
+    if (!authClient || submissionInProgress.current) return
     setMessage(null)
 
     const normalizedEmail = email.trim()
+    if (
+      (activeMode === 'login' ||
+        activeMode === 'signup' ||
+        activeMode === 'reset-password') &&
+      password.length < MINIMUM_PASSWORD_LENGTH
+    ) {
+      setMessage({
+        tone: 'error',
+        text: `Use a password with at least ${MINIMUM_PASSWORD_LENGTH} characters.`,
+      })
+      return
+    }
+
     if (activeMode === 'signup' || activeMode === 'reset-password') {
       if (password !== confirmPassword) {
         setMessage({ tone: 'error', text: 'The passwords do not match.' })
@@ -68,6 +114,7 @@ function AuthModule({
       }
     }
 
+    submissionInProgress.current = true
     setPending(true)
     try {
       if (activeMode === 'login') {
@@ -78,7 +125,7 @@ function AuthModule({
         if (error) {
           setMessage({
             tone: 'error',
-            text: 'We could not sign you in with those details. Check your email and password, or request a password reset.',
+            text: getSupabaseErrorMessage(error, 'sign in'),
           })
           return
         }
@@ -96,7 +143,7 @@ function AuthModule({
         if (error) {
           setMessage({
             tone: 'error',
-            text: 'We could not create the account. Try signing in or resetting the password if you may already have an account.',
+            text: getSupabaseErrorMessage(error, 'account creation'),
           })
           return
         }
@@ -106,7 +153,7 @@ function AuthModule({
           tone: 'success',
           text: data.session
             ? 'Your account is ready and you are signed in. Your personal records remain on this device.'
-            : 'Your registration request was received. Check your inbox for a verification email and follow its link to return to LossLens. Depending on your account settings, you may then be signed in or asked to log in. If the email does not arrive, try signing in or requesting a password reset.',
+            : 'Your account was created. Check your inbox for the verification email and follow its link to confirm your address. Once confirmed, return to LossLens and sign in. If the email does not arrive, check your spam folder or request a password reset.',
         })
       } else if (activeMode === 'forgot-password') {
         const { error } = await authClient.auth.resetPasswordForEmail(
@@ -116,7 +163,7 @@ function AuthModule({
         if (error) {
           setMessage({
             tone: 'error',
-            text: 'We could not request a reset email. Check your connection and try again.',
+            text: getSupabaseErrorMessage(error, 'Password-reset email request'),
           })
           return
         }
@@ -129,7 +176,7 @@ function AuthModule({
         if (error) {
           setMessage({
             tone: 'error',
-            text: 'The password could not be updated. The reset link may have expired; request a new one and try again.',
+            text: `${getSupabaseErrorMessage(error, 'Password update')} The reset link may have expired; request a new one and try again.`,
           })
           return
         }
@@ -148,9 +195,19 @@ function AuthModule({
         text: 'The request could not be completed. Check your connection and try again.',
       })
     } finally {
+      submissionInProgress.current = false
       setPending(false)
     }
   }
+
+  const pendingAction =
+    activeMode === 'signup'
+      ? 'Creating account…'
+      : activeMode === 'forgot-password'
+        ? 'Sending reset email…'
+        : activeMode === 'reset-password'
+          ? 'Updating password…'
+          : 'Signing in…'
 
   const title =
     activeMode === 'signup'
@@ -236,6 +293,7 @@ function AuthModule({
             <form
               aria-busy={pending}
               className="auth-form"
+              key={activeMode}
               onSubmit={(event) => void handleSubmit(event)}
             >
               <div className="form-field">
@@ -274,7 +332,11 @@ function AuthModule({
                     required
                     type="password"
                     value={password}
+                    minLength={MINIMUM_PASSWORD_LENGTH}
                   />
+                  <span className="field-hint" id="auth-password-hint">
+                    Use at least {MINIMUM_PASSWORD_LENGTH} characters.
+                  </span>
                 </div>
               )}
 
@@ -312,8 +374,11 @@ function AuthModule({
                   disabled={pending}
                   type="submit"
                 >
+                  {pending && (
+                    <span aria-hidden="true" className="auth-spinner" />
+                  )}
                   {pending
-                    ? 'Please wait…'
+                    ? pendingAction
                     : activeMode === 'signup'
                       ? 'Create account'
                       : activeMode === 'forgot-password'

@@ -26,7 +26,9 @@ type Props = {
 }
 
 function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Local data could not be loaded.'
+  return error instanceof Error
+    ? error.message
+    : 'Account data could not be loaded.'
 }
 
 function HomeDashboard({ onNavigate }: Props) {
@@ -115,7 +117,7 @@ function HomeDashboard({ onNavigate }: Props) {
     <div className="home-dashboard">
       {loadState === 'loading' && (
         <p aria-live="polite" className="storage-status">
-          Loading today's local summary…
+          Loading your account summary…
         </p>
       )}
       {loadState === 'error' && (
@@ -130,7 +132,7 @@ function HomeDashboard({ onNavigate }: Props) {
             <p className="eyebrow">Today · {today} (EAT)</p>
             <h2 id="home-today-title">A small check-in with today</h2>
             <p>
-              Your summary uses records saved on this device. No unrecorded
+              Your summary uses records saved to your LossLens account. No unrecorded
               activity is assumed.
             </p>
           </div>

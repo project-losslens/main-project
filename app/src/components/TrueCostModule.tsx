@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { deleteBet, getAllBets, saveBet } from '../lib/betDatabase'
+import {
+  loadPersonalData,
+  updatePersonalDataAndWait,
+} from '../lib/personalData'
 import FinancialInsights from './FinancialInsights'
 import {
   createEmptyBetForm,
@@ -34,7 +38,7 @@ const marketOptions: { value: MarketFamily; label: string }[] = [
 function getErrorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
-    : 'An unexpected local storage error occurred.'
+    : 'An unexpected account data error occurred.'
 }
 
 function formatPlacedDate(value: string): string {
@@ -214,8 +218,8 @@ function TrueCostModule() {
       setStorageError('')
       setStatusMessage(
         existingRecord
-          ? 'Your record was updated in this browser.'
-          : 'Your record was saved in this browser.',
+          ? 'Your record was updated in your LossLens account.'
+          : 'Your record was saved in your LossLens account.',
       )
       setForm(createEmptyBetForm())
       setErrors({})
@@ -234,12 +238,30 @@ function TrueCostModule() {
 
     try {
       await deleteBet(id)
+      const currentPersonalData = loadPersonalData()
+      const staleDecisionKeys = Object.entries(
+        currentPersonalData.duplicateDecisions,
+      )
+        .filter(
+          ([, decision]) =>
+            decision.kind === 'single' && decision.recordId === id,
+        )
+        .map(([key]) => key)
+      if (staleDecisionKeys.length > 0) {
+        await updatePersonalDataAndWait((current) => {
+          const duplicateDecisions = { ...current.duplicateDecisions }
+          staleDecisionKeys.forEach((key) => {
+            delete duplicateDecisions[key]
+          })
+          return { ...current, duplicateDecisions }
+        })
+      }
       setRecords((current) => current.filter((record) => record.id !== id))
       if (editingId === id) {
         resetForm()
       }
       setConfirmDeleteId(null)
-      setStatusMessage('The record was deleted from this browser.')
+      setStatusMessage('The record was deleted from your LossLens account.')
       setStorageState('ready')
     } catch (error) {
       setStorageState('error')
@@ -272,21 +294,21 @@ function TrueCostModule() {
       <div className="local-storage-note">
         <span aria-hidden="true" className="local-storage-dot" />
         <p>
-          Records are stored in this browser on this device. This feature does
-          not send them to a LossLens server. Clearing browser data may remove
-          them.
+          This screen reads and saves records in your signed-in LossLens
+          account. Existing browser records are retained after migration and
+          are not automatically synchronized back to the account.
         </p>
       </div>
 
       {storageState === 'loading' && (
         <p aria-live="polite" className="storage-status">
-          Loading records from this browser…
+          Loading records from your account…
         </p>
       )}
       {storageState === 'error' && (
         <div className="storage-error" role="alert">
           <div>
-            <strong>Local storage is unavailable.</strong>
+            <strong>Account records are unavailable.</strong>
             <p>
               {storageError} The requested operation could not be confirmed;
               retry and review the records before continuing.
@@ -386,6 +408,7 @@ function TrueCostModule() {
                 aria-invalid={Boolean(errors.bookmaker)}
                 autoComplete="off"
                 id="bookmaker"
+                maxLength={200}
                 onChange={(event) => updateForm('bookmaker', event.currentTarget.value)}
                 required
                 type="text"
@@ -444,6 +467,7 @@ function TrueCostModule() {
                   id="legs"
                   inputMode="numeric"
                   min="2"
+                  max="2147483647"
                   onChange={(event) => updateForm('legs', event.currentTarget.value)}
                   required
                   step="1"
@@ -673,7 +697,7 @@ function TrueCostModule() {
 
         {storageState === 'loading' ? (
           <p aria-live="polite" className="records-empty">
-            Reading records from this browser…
+            Reading records from your account…
           </p>
         ) : sortedRecords.length === 0 ? (
           <p className="records-empty">
@@ -739,7 +763,7 @@ function TrueCostModule() {
                 <div className="record-actions">
                   {confirmDeleteId === record.id ? (
                     <>
-                      <span>Delete this record from this browser?</span>
+                      <span>Delete this record from your account?</span>
                       <button
                         className="danger-button"
                         disabled={deletingId === record.id}

@@ -12,6 +12,7 @@ import {
   formatKes,
   formatPaiseForInput,
   getTodayInNairobi,
+  MAX_DATABASE_AMOUNT_PAISE,
   parseKesToPaise,
   type BetRecord,
   type Period,
@@ -19,7 +20,7 @@ import {
 import {
   loadPersonalData,
   parseStoredPaise,
-  updatePersonalData,
+  updatePersonalDataAndWait,
   type PersonalData,
   type PeriodFinancialSetting,
 } from '../lib/personalData'
@@ -135,7 +136,7 @@ function getHistoryRanges(
 function getErrorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
-    : 'An unexpected local storage error occurred.'
+    : 'An unexpected account data error occurred.'
 }
 
 function formatRecordedDateTime(value: string): string {
@@ -312,21 +313,22 @@ function FinancialInsights({ records, period, onPeriodChange }: Props) {
 
   function persistPersonalData(
     update: (current: PersonalData) => PersonalData,
-  ): boolean {
-    try {
-      const updated = updatePersonalData(update)
+  ): Promise<boolean> {
+    return updatePersonalDataAndWait(update)
+      .then((updated) => {
       setPersonalData(updated)
       setStorageState('ready')
       setStorageError('')
       return true
-    } catch (error) {
+      })
+      .catch((error: unknown) => {
       setStorageError(getErrorMessage(error))
       setStorageState('error')
       return false
-    }
+      })
   }
 
-  function handleSaveSettings(event: FormEvent<HTMLFormElement>) {
+  async function handleSaveSettings(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setSettingError('')
 
@@ -341,8 +343,22 @@ function FinancialInsights({ records, period, onPeriodChange }: Props) {
       setSettingError('Enter available income as a valid KES amount or leave it blank.')
       return
     }
+    if (
+      parsedIncome !== null &&
+      parsedIncome > MAX_DATABASE_AMOUNT_PAISE
+    ) {
+      setSettingError('Available income is above the supported maximum.')
+      return
+    }
     if (budgetInput !== '' && parsedBudget === null) {
       setSettingError('Enter the loss limit as a valid KES amount or leave it blank.')
+      return
+    }
+    if (
+      parsedBudget !== null &&
+      parsedBudget > MAX_DATABASE_AMOUNT_PAISE
+    ) {
+      setSettingError('The loss limit is above the supported maximum.')
       return
     }
 
@@ -353,7 +369,7 @@ function FinancialInsights({ records, period, onPeriodChange }: Props) {
       accountingStatus: settingForm.accountingStatus,
       updatedAt: new Date().toISOString(),
     }
-    const saved = persistPersonalData((current) => ({
+    const saved = await persistPersonalData((current) => ({
       ...current,
       financialSettings: {
         ...current.financialSettings,
@@ -361,15 +377,15 @@ function FinancialInsights({ records, period, onPeriodChange }: Props) {
       },
     }))
     if (saved) {
-      setStatusMessage('These financial settings were saved on this device for the displayed dates.')
+      setStatusMessage('These financial settings were saved to your LossLens account for the displayed dates.')
     }
   }
 
-  function setDuplicateDecision(
+  async function setDuplicateDecision(
     key: string,
     decision: DuplicateDecision | null,
   ) {
-    persistPersonalData((current) => {
+    await persistPersonalData((current) => {
       const duplicateDecisions = { ...current.duplicateDecisions }
       if (decision === null) {
         delete duplicateDecisions[key]
@@ -475,7 +491,7 @@ function FinancialInsights({ records, period, onPeriodChange }: Props) {
         <div className="storage-error" role="alert">
           <div>
             <strong>Personal settings could not be loaded or saved.</strong>
-            <p>{storageError} Financial ratios may be unavailable until local storage works.</p>
+            <p>{storageError} Financial ratios may be unavailable until account data can be loaded.</p>
           </div>
           <button
             className="secondary-button retry-button"
@@ -646,7 +662,7 @@ function FinancialInsights({ records, period, onPeriodChange }: Props) {
 
       <section aria-labelledby="financial-settings-title" className="financial-settings">
         <div>
-          <p className="eyebrow">Optional · stored on this device</p>
+          <p className="eyebrow">Optional · saved to your account</p>
           <h4 id="financial-settings-title">Add context for this exact period</h4>
           <p>
             Enter amounts that cover {range.start} to {range.end} only. No

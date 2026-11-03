@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 
-type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password'
+export type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password'
 type Message = { tone: 'error' | 'success'; text: string }
 type SupabaseAuthError = { code?: string; message: string }
 
@@ -42,7 +42,9 @@ type Props = {
   authNotice: string
   authReady: boolean
   authUnavailable: boolean
-  initialMode: 'login' | 'signup'
+  initialMode: AuthMode
+  initialEmail?: string
+  onModeChange: (mode: AuthMode, email: string) => void
   onRecoveryComplete: () => void
   onReturnHome: () => void
   onReturnPublicLanding: () => void
@@ -57,6 +59,8 @@ function AuthModule({
   authReady,
   authUnavailable,
   initialMode,
+  initialEmail = '',
+  onModeChange,
   onRecoveryComplete,
   onReturnHome,
   onReturnPublicLanding,
@@ -65,7 +69,7 @@ function AuthModule({
   session,
 }: Props) {
   const [mode, setMode] = useState<AuthMode>(initialMode)
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [pending, setPending] = useState(false)
@@ -83,6 +87,7 @@ function AuthModule({
 
   function changeMode(nextMode: AuthMode) {
     setMode(nextMode)
+    onModeChange(nextMode, email)
     setPassword('')
     setConfirmPassword('')
     setMessage(null)
@@ -132,7 +137,7 @@ function AuthModule({
         setPassword('')
         setMessage({
           tone: 'success',
-          text: 'You are signed in. Your personal records remain on this device and are not synced by signing in.',
+          text: 'You are signed in. LossLens will guide you through account data setup before opening private sections.',
         })
       } else if (activeMode === 'signup') {
         const { data, error } = await authClient.auth.signUp({
@@ -152,7 +157,7 @@ function AuthModule({
         setMessage({
           tone: 'success',
           text: data.session
-            ? 'Your account is ready and you are signed in. Your personal records remain on this device.'
+            ? 'Your account is ready and you are signed in. Review account data setup before opening private sections.'
             : 'Your account was created. Check your inbox for the verification email and follow its link to confirm your address. Once confirmed, return to LossLens and sign in. If the email does not arrive, check your spam folder or request a password reset.',
         })
       } else if (activeMode === 'forgot-password') {
@@ -186,7 +191,7 @@ function AuthModule({
         onRecoveryComplete()
         setMessage({
           tone: 'success',
-          text: 'Your password has been updated. You can continue to your local LossLens screens.',
+          text: 'Your password has been updated. You can continue to LossLens account setup.',
         })
       }
     } catch {
@@ -222,14 +227,15 @@ function AuthModule({
     <section aria-labelledby="auth-title" className="section-block auth-section">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Account access · local records stay local</p>
+          <p className="eyebrow">Account access · personal-data setup first</p>
           <h1 id="auth-title" tabIndex={-1}>
             {session && !recoveryAvailable ? 'Your account' : title}
           </h1>
           <p className="section-description">
-            Account sign-in is handled by your configured Supabase project.
-            Your True Cost and recovery records remain on this device and are
-            not uploaded or synced.
+            Sign-in uses your configured Supabase project. Before private
+            sections open, LossLens explains account storage and asks for your
+            choice. Existing browser records are not sent until you explicitly
+            confirm a backup and migration.
           </p>
         </div>
       </div>
@@ -264,8 +270,9 @@ function AuthModule({
               Signed in as <strong>{session.user.email}</strong>.
             </p>
             <p className="auth-info">
-              Your financial and recovery information remains stored locally in
-              this browser. No records are being synced.
+              Account data setup is required before private sections open.
+              Existing browser records are not migrated until you explicitly
+              confirm the backup and migration step.
             </p>
             <button
               className="secondary-button"

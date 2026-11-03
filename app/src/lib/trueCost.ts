@@ -54,6 +54,8 @@ export type ActualTotals = {
   netPaise: bigint
 }
 
+export const MAX_DATABASE_AMOUNT_PAISE = 10n ** 20n - 1n
+
 const moneyFormatter = new Intl.NumberFormat('en-KE')
 
 function normalizeDecimalInput(value: string): string | null {
@@ -144,8 +146,13 @@ function parseOdds(value: string): number | null {
     return null
   }
 
+  const [whole = '', fractional = ''] = normalized.split('.')
+  if (whole.replace(/^0+/, '').length > 12 || fractional.length > 6) {
+    return null
+  }
+
   const odds = Number(normalized)
-  return Number.isFinite(odds) ? odds : null
+  return Number.isFinite(odds) && odds < 1_000_000_000_000 ? odds : null
 }
 
 function isCalendarDate(value: string): boolean {
@@ -187,6 +194,8 @@ export function validateBetForm(
 
   if (!bookmaker) {
     errors.bookmaker = 'Enter the bookmaker name.'
+  } else if (bookmaker.length > 200) {
+    errors.bookmaker = 'Keep the bookmaker name to 200 characters or fewer.'
   }
 
   if (
@@ -201,8 +210,12 @@ export function validateBetForm(
   let legs = 1
   if (form.betType === 'multi') {
     const parsedLegs = Number(form.legs)
-    if (!Number.isInteger(parsedLegs) || parsedLegs < 2) {
-      errors.legs = 'A multibet has at least 2 legs.'
+    if (
+      !Number.isInteger(parsedLegs) ||
+      parsedLegs < 2 ||
+      parsedLegs > 2_147_483_647
+    ) {
+      errors.legs = 'Enter a whole number of legs from 2 to 2,147,483,647.'
     } else {
       legs = parsedLegs
     }
@@ -213,10 +226,13 @@ export function validateBetForm(
   } else if (stakePaise <= 0n) {
     errors.stake =
       'Enter an amount above 0 after rounding to two decimal places.'
+  } else if (stakePaise > MAX_DATABASE_AMOUNT_PAISE) {
+    errors.stake = 'This amount is above the supported maximum.'
   }
 
   if (oddsTaken === null || oddsTaken <= 1) {
-    errors.oddsTaken = 'Odds must be above 1.00. Use decimal odds like 2.10.'
+    errors.oddsTaken =
+      'Use decimal odds above 1.00 and below 1 trillion, with up to 6 decimal places.'
   }
 
   let returnedPaise = 0n
@@ -224,6 +240,8 @@ export function validateBetForm(
     returnedPaise = parseKesToPaise(form.returned) ?? -1n
     if (returnedPaise < 0n) {
       errors.returned = 'Enter the amount you received as a valid KES amount.'
+    } else if (returnedPaise > MAX_DATABASE_AMOUNT_PAISE) {
+      errors.returned = 'This amount is above the supported maximum.'
     }
   } else if (result === 'void' && stakePaise !== null && stakePaise > 0n) {
     returnedPaise = stakePaise

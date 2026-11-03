@@ -38,7 +38,7 @@ const faqs = [
   {
     question: 'Where is my personal data stored?',
     answer:
-      'True Cost records are stored in this browser using IndexedDB. My Recovery records use this browser’s localStorage. Supabase is used for authentication. Personal records are not automatically synchronised between devices or accounts.',
+      'LossLens stores personal records in the configured Supabase account after you consent. There is no browser localStorage or IndexedDB fallback for private data, and no automatic local copy is kept for your personal records.',
   },
   {
     question: 'Is LossLens a medical service?',
@@ -399,7 +399,7 @@ function PublicHomePage({ onNavigate, onLogin, onSignup }: Props) {
               <span aria-hidden="true">04</span>
               <div>
                 <h3>Privacy-conscious by design</h3>
-                <p>Personal records stay in browser storage by default.</p>
+                <p>Private records are stored in the configured Supabase account after consent.</p>
               </div>
             </li>
             <li className="homepage-reveal">
@@ -423,9 +423,9 @@ function PublicHomePage({ onNavigate, onLogin, onSignup }: Props) {
             <p className="public-eyebrow">Your data, clearly explained</p>
             <h2 id="privacy-title">Personal by default</h2>
             <p className="public-privacy-lead">
-              LossLens uses different storage for authentication and personal
-              records. Signing in does not automatically move your records
-              between devices or accounts.
+              LossLens uses Supabase for account authentication and personal
+              records when you grant consent. There is no browser-backed
+              personal-data fallback after consent is active.
             </p>
           </div>
           <div className="public-data-facts">
@@ -434,7 +434,8 @@ function PublicHomePage({ onNavigate, onLogin, onSignup }: Props) {
               <div>
                 <h3>True Cost</h3>
                 <p>
-                  Your records are stored in this browser using IndexedDB.
+                  Records are saved to the configured Supabase account for the
+                  signed-in user.
                 </p>
               </div>
             </div>
@@ -443,8 +444,8 @@ function PublicHomePage({ onNavigate, onLogin, onSignup }: Props) {
               <div>
                 <h3>My Recovery</h3>
                 <p>
-                  Your personal records are stored in this browser’s
-                  localStorage.
+                  Check-ins, diary entries, goals, reflections and preferences
+                  are saved in the same Supabase account after consent.
                 </p>
               </div>
             </div>
@@ -452,7 +453,10 @@ function PublicHomePage({ onNavigate, onLogin, onSignup }: Props) {
               <span className="public-data-mark">03</span>
               <div>
                 <h3>Supabase</h3>
-                <p>Used for account authentication.</p>
+                <p>
+                  Used for authentication and active personal-data storage for
+                  the approved account.
+                </p>
               </div>
             </div>
           </div>

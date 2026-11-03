@@ -3,7 +3,12 @@ import type {
   PeriodAccountingStatus,
 } from './financialMetrics.ts'
 
-const STORAGE_KEY = 'losslens-personal-data-v1'
+type CloudPersonalDataPersistence = (data: PersonalData) => Promise<void>
+
+let cloudPersonalData: PersonalData | null = null
+let persistCloudPersonalData: CloudPersonalDataPersistence | null = null
+let cloudSaveQueue: Promise<void> = Promise.resolve()
+let cloudSaveError: Error | null = null
 
 export type PeriodFinancialSetting = {
   incomePaise: string | null
@@ -37,6 +42,25 @@ export type ToolReflection = {
   updatedAt: string
 }
 
+export type DiaryEntry = {
+  id: string
+  date: string
+  mood: string
+  triggers: string[]
+  copingStrategies: string[]
+  note: string
+  updatedAt: string
+}
+
+export type MonthlyReflection = {
+  monthStart: string
+  achievements: string
+  difficulties: string
+  lessons: string
+  futureIntention: string
+  updatedAt: string
+}
+
 export type PersonalData = {
   version: 1
   financialSettings: Record<string, PeriodFinancialSetting>
@@ -46,6 +70,8 @@ export type PersonalData = {
   alternativeActivities: string[]
   reasonsToPause: string
   toolReflections: Record<string, ToolReflection>
+  diaryEntries?: DiaryEntry[]
+  monthlyReflections?: Record<string, MonthlyReflection>
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -59,11 +85,9 @@ function isPeriodSetting(value: unknown): value is PeriodFinancialSetting {
 
   return (
     (value.incomePaise === null ||
-      (typeof value.incomePaise === 'string' &&
-        /^\d+$/.test(value.incomePaise))) &&
+      (typeof value.incomePaise === 'string' && /^\d+$/.test(value.incomePaise))) &&
     (value.lossBudgetPaise === null ||
-      (typeof value.lossBudgetPaise === 'string' &&
-        /^\d+$/.test(value.lossBudgetPaise))) &&
+      (typeof value.lossBudgetPaise === 'string' && /^\d+$/.test(value.lossBudgetPaise))) &&
     typeof value.reviewed === 'boolean' &&
     (value.accountingStatus === undefined ||
       value.accountingStatus === 'notReviewed' ||
@@ -128,9 +152,91 @@ function isToolReflection(value: unknown): value is ToolReflection {
   )
 }
 
+export function isDiaryEntry(value: unknown): value is DiaryEntry {
+  const date =
+    isObjectRecord(value) && typeof value.date === 'string'
+      ? new Date(`${value.date}T00:00:00.000Z`)
+      : null
+  return (
+    isObjectRecord(value) &&
+    typeof value.id === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value.id,
+    ) &&
+    typeof value.date === 'string' &&
+    /^\d{4}-\d{2}-\d{2}$/.test(value.date) &&
+    date !== null &&
+    Number.isFinite(date.getTime()) &&
+    date.toISOString().slice(0, 10) === value.date &&
+    typeof value.mood === 'string' &&
+    value.mood.length <= 120 &&
+    Array.isArray(value.triggers) &&
+    value.triggers.every(
+      (trigger) => typeof trigger === 'string' && trigger.length <= 120,
+    ) &&
+    Array.isArray(value.copingStrategies) &&
+    value.copingStrategies.every(
+      (strategy) => typeof strategy === 'string' && strategy.length <= 120,
+    ) &&
+    typeof value.note === 'string' &&
+    value.note.length <= 20000 &&
+    typeof value.updatedAt === 'string'
+  )
+}
+
+function isMonthlyReflection(value: unknown): value is MonthlyReflection {
+  if (!isObjectRecord(value) || typeof value.monthStart !== 'string') {
+    return false
+  }
+  const date = new Date(`${value.monthStart}T00:00:00.000Z`)
+  return (
+    /^\d{4}-\d{2}-01$/.test(value.monthStart) &&
+    Number.isFinite(date.getTime()) &&
+    date.toISOString().slice(0, 10) === value.monthStart &&
+    typeof value.achievements === 'string' &&
+    value.achievements.length <= 5000 &&
+    typeof value.difficulties === 'string' &&
+    value.difficulties.length <= 5000 &&
+    typeof value.lessons === 'string' &&
+    value.lessons.length <= 5000 &&
+    typeof value.futureIntention === 'string' &&
+    value.futureIntention.length <= 5000 &&
+    typeof value.updatedAt === 'string'
+  )
+}
+
 function isPersonalData(value: unknown): value is PersonalData {
   if (!isObjectRecord(value) || value.version !== 1) {
     return false
+  }
+
+  if (value.diaryEntries !== undefined) {
+    if (
+      !Array.isArray(value.diaryEntries) ||
+      !value.diaryEntries.every(isDiaryEntry)
+    ) {
+      return false
+    }
+    const diaryIds = value.diaryEntries.map((entry) => entry.id)
+    const diaryDates = value.diaryEntries.map((entry) => entry.date)
+    if (
+      new Set(diaryIds).size !== diaryIds.length ||
+      new Set(diaryDates).size !== diaryDates.length
+    ) {
+      return false
+    }
+  }
+
+  if (value.monthlyReflections !== undefined) {
+    if (
+      !isObjectRecord(value.monthlyReflections) ||
+      !Object.entries(value.monthlyReflections).every(
+        ([month, reflection]) =>
+          isMonthlyReflection(reflection) && reflection.monthStart === month,
+      )
+    ) {
+      return false
+    }
   }
 
   return (
@@ -159,62 +265,92 @@ export function createEmptyPersonalData(): PersonalData {
     alternativeActivities: [],
     reasonsToPause: '',
     toolReflections: {},
+    diaryEntries: [],
+    monthlyReflections: {},
   }
-}
-
-function getLocalStorage(): Storage {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    throw new Error('This browser does not support local personal storage.')
-  }
-  return window.localStorage
 }
 
 export function loadPersonalData(): PersonalData {
-  const raw = getLocalStorage().getItem(STORAGE_KEY)
-  if (raw === null) {
-    return createEmptyPersonalData()
-  }
-
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(raw)
-  } catch {
-    throw new Error(
-      'Saved personal support data could not be read. It has not been overwritten.',
-    )
-  }
-
-  if (!isPersonalData(parsed)) {
-    throw new Error(
-      'Saved personal support data has an unexpected format. It has not been overwritten.',
-    )
-  }
-
-  return parsed
+  return cloudPersonalData ?? createEmptyPersonalData()
 }
 
 export function updatePersonalData(
   update: (current: PersonalData) => PersonalData,
 ): PersonalData {
-  const storage = getLocalStorage()
-  const current = loadPersonalData()
+  if (!cloudPersonalData || !persistCloudPersonalData) {
+    throw new Error(
+      'LossLens stores personal data in Supabase only. Sign in to continue.',
+    )
+  }
+
+  const current = cloudPersonalData
   const updated = update(current)
 
   if (!isPersonalData(updated)) {
     throw new Error('The personal data change did not pass validation.')
   }
 
-  try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(updated))
-  } catch (error) {
-    throw new Error(
-      error instanceof Error
-        ? `Could not save personal data on this device: ${error.message}`
-        : 'Could not save personal data on this device.',
-    )
-  }
+  cloudPersonalData = updated
+  dispatchPersonalDataUpdated()
 
+  const snapshot = updated
+  const persist = persistCloudPersonalData
+  cloudSaveQueue = cloudSaveQueue
+    .then(() => persist(snapshot))
+    .then(() => {
+      cloudSaveError = null
+      window.dispatchEvent(
+        new CustomEvent('losslens:cloud-save-state', {
+          detail: { error: null },
+        }),
+      )
+    })
+    .catch((error: unknown) => {
+      cloudSaveError =
+        error instanceof Error
+          ? error
+          : new Error('Cloud recovery data could not be saved.')
+      window.dispatchEvent(
+        new CustomEvent('losslens:cloud-save-state', {
+          detail: { error: cloudSaveError.message },
+        }),
+      )
+    })
+
+  return updated
+}
+
+function dispatchPersonalDataUpdated(): void {
   window.dispatchEvent(new Event('losslens:personal-data-updated'))
+}
+
+export function configureCloudPersonalData(
+  data: PersonalData,
+  persist: CloudPersonalDataPersistence,
+): void {
+  cloudPersonalData = data
+  persistCloudPersonalData = persist
+  cloudSaveQueue = Promise.resolve()
+  cloudSaveError = null
+}
+
+export function clearCloudPersonalData(): void {
+  cloudPersonalData = null
+  persistCloudPersonalData = null
+}
+
+export async function flushCloudPersonalData(): Promise<void> {
+  await cloudSaveQueue
+  if (cloudSaveError) {
+    throw cloudSaveError
+  }
+}
+
+export async function updatePersonalDataAndWait(
+  update: (current: PersonalData) => PersonalData,
+): Promise<PersonalData> {
+  const updated = updatePersonalData(update)
+  await flushCloudPersonalData()
   return updated
 }
 

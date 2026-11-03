@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0B1220" />
+    <title>LossLens is offline</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Poppins, "Avenir Next", Avenir, "Segoe UI", sans-serif;
+        background: #0b1220;
+        color: #ffffff;
+      }
+
+      body {
+        align-items: center;
+        display: flex;
+        justify-content: center;
+        margin: 0;
+        min-height: 100vh;
+        padding: 24px;
+      }
+
+      main {
+        background: #111b2d;
+        border: 1px solid #34445a;
+        border-radius: 18px;
+        max-width: 560px;
+        padding: clamp(24px, 6vw, 48px);
+      }
+
+      h1 {
+        font-size: clamp(1.8rem, 5vw, 2.5rem);
+        line-height: 1.15;
+      }
+
+      p {
+        color: #e4eaf2;
+        line-height: 1.65;
+      }
+
+      a {
+        color: #2dd4bf;
+        font-weight: 700;
+      }
+
+      a:focus-visible {
+        outline: 3px solid #7dbdee;
+        outline-offset: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>LossLens</p>
+      <h1>You’re offline</h1>
+      <p>
+        LossLens could not reach the network. Account sign-in and account data
+        need an internet connection. If this device has already loaded LossLens,
+        its public information may still be available from the cached app.
+      </p>
+      <p>
+        <a href="/">Try opening LossLens again</a>
+        ·
+        <a href="/support">Open Get Support</a>
+      </p>
+      <p>
+        This offline notice does not save information you enter. Do not rely on
+        it as the only copy of personal records.
+      </p>
+    </main>
+  </body>
+</html>

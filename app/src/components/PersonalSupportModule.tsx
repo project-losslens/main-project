@@ -6,7 +6,7 @@ import {
 } from '../lib/financialMetrics'
 import {
   loadPersonalData,
-  updatePersonalData,
+  updatePersonalDataAndWait,
   type DailyCheckIn,
   type PersonalData,
   type RecoveryGoal,
@@ -78,7 +78,7 @@ const emptyReflection: ToolReflection = {
 function getErrorMessage(error: unknown): string {
   return error instanceof Error
     ? error.message
-    : 'An unexpected local storage error occurred.'
+    : 'An unexpected account data error occurred.'
 }
 
 function formFromCheckIn(entry: DailyCheckIn | undefined): CheckInForm {
@@ -262,18 +262,19 @@ function PersonalSupportModule() {
 
   function persistPersonalData(
     update: (current: PersonalData) => PersonalData,
-  ): PersonalData | null {
-    try {
-      const updated = updatePersonalData(update)
+  ): Promise<PersonalData | null> {
+    return updatePersonalDataAndWait(update)
+      .then((updated) => {
       setPersonalData(updated)
       setStorageState('ready')
       setStorageError('')
       return updated
-    } catch (error) {
+      })
+      .catch((error: unknown) => {
       setStorageError(getErrorMessage(error))
       setStorageState('error')
       return null
-    }
+      })
   }
 
   const selectedCheckIn = personalData?.checkIns[selectedDate]
@@ -346,7 +347,7 @@ function PersonalSupportModule() {
     setStatusMessage('')
   }
 
-  function handleCheckInSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleCheckInSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setCheckInError('')
 
@@ -399,16 +400,16 @@ function PersonalSupportModule() {
       note: checkInForm.note.trim(),
       updatedAt: new Date().toISOString(),
     }
-    const updated = persistPersonalData((current) => ({
+    const updated = await persistPersonalData((current) => ({
       ...current,
       checkIns: { ...current.checkIns, [selectedDate]: entry },
     }))
     if (updated) {
-      setStatusMessage(`Your check-in for ${formatShortDate(selectedDate)} was saved on this device.`)
+      setStatusMessage(`Your check-in for ${formatShortDate(selectedDate)} was saved to your LossLens account.`)
     }
   }
 
-  function handleGoalSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleGoalSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setGoalError('')
     const target = Number(goalTarget)
@@ -427,13 +428,13 @@ function PersonalSupportModule() {
       targetDays: target,
       updatedAt: new Date().toISOString(),
     }
-    const updated = persistPersonalData((current) => ({ ...current, goal }))
+    const updated = await persistPersonalData((current) => ({ ...current, goal }))
     if (updated) {
       setGoalError('')
     }
   }
 
-  function saveReflection(event: FormEvent<HTMLFormElement>) {
+  async function saveReflection(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (
       reflection.trigger.length > 300 ||
@@ -448,7 +449,7 @@ function PersonalSupportModule() {
       ...reflection,
       updatedAt: new Date().toISOString(),
     }
-    const updated = persistPersonalData((current) => ({
+    const updated = await persistPersonalData((current) => ({
       ...current,
       toolReflections: {
         ...current.toolReflections,
@@ -457,18 +458,18 @@ function PersonalSupportModule() {
     }))
     if (updated) {
       setReflection(savedReflection)
-      setReflectionStatus('Your reflection was saved on this device.')
+      setReflectionStatus('Your reflection was saved to your LossLens account.')
     }
   }
 
-  function addAlternativeActivity(event: FormEvent<HTMLFormElement>) {
+  async function addAlternativeActivity(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const activity = activityInput.trim()
     if (!activity || activity.length > 100) {
       setActivityError('Enter an alternative activity of 1 to 100 characters.')
       return
     }
-    const updated = persistPersonalData((current) => {
+    const updated = await persistPersonalData((current) => {
       const alreadyExists = current.alternativeActivities.some(
         (saved) => saved.toLocaleLowerCase() === activity.toLocaleLowerCase(),
       )
@@ -485,8 +486,8 @@ function PersonalSupportModule() {
     }
   }
 
-  function removeAlternativeActivity(activity: string) {
-    persistPersonalData((current) => ({
+  async function removeAlternativeActivity(activity: string) {
+    await persistPersonalData((current) => ({
       ...current,
       alternativeActivities: current.alternativeActivities.filter(
         (saved) => saved !== activity,
@@ -494,18 +495,18 @@ function PersonalSupportModule() {
     }))
   }
 
-  function saveReason(event: FormEvent<HTMLFormElement>) {
+  async function saveReason(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (reasonInput.length > 500) {
       setReasonStatus('Keep this reminder to 500 characters or fewer.')
       return
     }
-    const updated = persistPersonalData((current) => ({
+    const updated = await persistPersonalData((current) => ({
       ...current,
       reasonsToPause: reasonInput.trim(),
     }))
     if (updated) {
-      setReasonStatus('Your reminder was saved on this device.')
+      setReasonStatus('Your reminder was saved to your LossLens account.')
     }
   }
 
@@ -532,9 +533,9 @@ function PersonalSupportModule() {
       <div className="local-storage-note">
         <span aria-hidden="true" className="local-storage-dot" />
         <p>
-          Check-ins, goals, reflections, and personal activities are stored in
-          this browser on this device. They are not sent to a LossLens server.
-          Clearing browser data may remove them.
+          My Recovery reads and saves data in your signed-in LossLens account.
+          Browser records from before migration remain on this device and are
+          not automatically synchronized back to your account.
         </p>
       </div>
 
@@ -546,7 +547,7 @@ function PersonalSupportModule() {
       {storageState === 'error' && (
         <div className="storage-error" role="alert">
           <div>
-            <strong>Personal support storage is unavailable.</strong>
+            <strong>My Recovery account data is unavailable.</strong>
             <p>{storageError} Your saved personal information has not been confirmed.</p>
           </div>
           <button className="secondary-button" onClick={loadSavedData} type="button">
@@ -582,7 +583,7 @@ function PersonalSupportModule() {
 
         <section aria-label={`Ledger amounts for ${selectedDate}`} className="ledger-context">
           <h4>Bet records already saved for this date</h4>
-          {recordState === 'loading' && <p>Loading local bet records…</p>}
+          {recordState === 'loading' && <p>Loading account bet records…</p>}
           {recordState === 'error' && (
             <div role="alert">
               <p>{recordError} Check-in money is not added to bet totals.</p>

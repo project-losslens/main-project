@@ -99,5 +99,40 @@ test('rejects invalid stakes, odds, and impossible multibet counts', () => {
     '2026-10-29',
   )
   assert.equal(invalidLegs.value, undefined)
-  assert.match(invalidLegs.errors.legs, /at least 2/i)
+  assert.match(invalidLegs.errors.legs, /from 2/i)
+})
+
+test('enforces paise and database odds bounds before saving', () => {
+  const maximumStake = validateBetForm(
+    validForm({ stake: '999,999,999,999,999,999.99' }),
+    '2026-10-29',
+  )
+  assert.equal(maximumStake.value?.stakePaise, 99_999_999_999_999_999_999n)
+
+  const excessiveStake = validateBetForm(
+    validForm({ stake: '1,000,000,000,000,000,000' }),
+    '2026-10-29',
+  )
+  assert.match(excessiveStake.errors.stake, /supported maximum/i)
+
+  const excessiveReturn = validateBetForm(
+    validForm({
+      result: 'won',
+      returned: '1,000,000,000,000,000,000',
+    }),
+    '2026-10-29',
+  )
+  assert.match(excessiveReturn.errors.returned, /supported maximum/i)
+
+  const excessiveOdds = validateBetForm(
+    validForm({ oddsTaken: '999999999999.999999' }),
+    '2026-10-29',
+  )
+  assert.match(excessiveOdds.errors.oddsTaken, /below 1 trillion/i)
+
+  const excessivePrecision = validateBetForm(
+    validForm({ oddsTaken: '2.1234567' }),
+    '2026-10-29',
+  )
+  assert.match(excessivePrecision.errors.oddsTaken, /6 decimal places/i)
 })

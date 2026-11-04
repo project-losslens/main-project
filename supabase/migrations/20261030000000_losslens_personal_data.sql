@@ -536,4 +536,90 @@ begin
 end;
 $$;
 
+-- Account contact profile used by email/password authentication. Phone number
+-- is contact metadata only and is never used as a Supabase login identity.
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  phone_number text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create or replace function public.prevent_profile_id_change()
+returns trigger
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+  if new.id is distinct from old.id then
+    raise exception 'Profile ownership cannot be changed';
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function public.handle_new_auth_user_profile()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.profiles (id, phone_number)
+  values (
+    new.id,
+    new.raw_user_meta_data ->> 'phone_number'
+  )
+  on conflict (id) do update
+  set phone_number = coalesce(public.profiles.phone_number, excluded.phone_number);
+  return new;
+end;
+$$;
+
+revoke all on function public.prevent_profile_id_change() from public, anon, authenticated;
+revoke all on function public.handle_new_auth_user_profile() from public, anon, authenticated;
+
+drop trigger if exists on_auth_user_created_profile on auth.users;
+create trigger on_auth_user_created_profile
+after insert on auth.users
+for each row execute function public.handle_new_auth_user_profile();
+
+drop trigger if exists profiles_prevent_id_change on public.profiles;
+create trigger profiles_prevent_id_change
+before update on public.profiles
+for each row execute function public.prevent_profile_id_change();
+
+drop trigger if exists profiles_set_updated_at on public.profiles;
+create trigger profiles_set_updated_at
+before update on public.profiles
+for each row execute function public.set_updated_at();
+
+alter table public.profiles enable row level security;
+revoke all privileges on table public.profiles from public, anon, authenticated;
+grant select (id, phone_number, created_at, updated_at) on table public.profiles to authenticated;
+grant insert (id, phone_number, created_at, updated_at) on table public.profiles to authenticated;
+grant update (phone_number) on table public.profiles to authenticated;
+
+drop policy if exists profiles_select_own on public.profiles;
+drop policy if exists profiles_insert_own on public.profiles;
+drop policy if exists profiles_update_own on public.profiles;
+create policy profiles_select_own on public.profiles
+for select to authenticated
+using (id = (select auth.uid()));
+create policy profiles_insert_own on public.profiles
+for insert to authenticated
+with check (id = (select auth.uid()));
+create policy profiles_update_own on public.profiles
+for update to authenticated
+using (id = (select auth.uid()))
+with check (id = (select auth.uid()));
+
+insert into public.profiles (id, phone_number)
+select users.id, users.raw_user_meta_data ->> 'phone_number'
+from auth.users as users
+where users.id is not null
+on conflict (id) do update
+set phone_number = coalesce(public.profiles.phone_number, excluded.phone_number);
+
 commit;

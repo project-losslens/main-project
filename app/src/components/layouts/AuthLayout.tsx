@@ -18,9 +18,6 @@ function AuthLayout() {
             Get Support
           </Link>
         </nav>
-        <Link className="header-link" to="/">
-          Back to home
-        </Link>
       </header>
       <main className="route-main">
         <Outlet />

@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useLocation } from 'react-router-dom'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
+import { normalizeInternationalPhone } from '../lib/phoneNumber'
 
 export type AuthMode = 'login' | 'signup' | 'forgot-password' | 'reset-password'
 type Message = { tone: 'error' | 'success'; text: string }
@@ -37,6 +39,7 @@ function getSupabaseErrorMessage(
   return `${action} failed: ${error.message}`
 }
 
+
 type Props = {
   authClient: SupabaseClient | null
   authNotice: string
@@ -46,6 +49,7 @@ type Props = {
   initialEmail?: string
   onModeChange: (mode: AuthMode, email: string) => void
   onRecoveryComplete: () => void
+  onRegistrationComplete: () => void
   onReturnHome: () => void
   onReturnPublicLanding: () => void
   recoveryAvailable: boolean
@@ -62,22 +66,49 @@ function AuthModule({
   initialEmail = '',
   onModeChange,
   onRecoveryComplete,
+  onRegistrationComplete,
   onReturnHome,
   onReturnPublicLanding,
   recoveryAvailable,
   recoveryLinkError,
   session,
 }: Props) {
+  const location = useLocation()
   const [mode, setMode] = useState<AuthMode>(initialMode)
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<Message | null>(null)
   const submissionInProgress = useRef(false)
   const activeMode = recoveryAvailable ? 'reset-password' : mode
   const visibleMessage =
     message ??
+    (() => {
+      const params = new URLSearchParams(location.search)
+      if (params.has('checkEmail')) {
+        return {
+          tone: 'success' as const,
+          text: 'Check your inbox and confirm your email address before signing in.',
+        }
+      }
+      if (params.has('confirmed')) {
+        return {
+          tone: 'success' as const,
+          text: 'Your email has been confirmed. You can now sign in.',
+        }
+      }
+      if (params.has('passwordUpdated')) {
+        return {
+          tone: 'success' as const,
+          text: 'Your password was changed successfully. You can now sign in.',
+        }
+      }
+      return null
+    })() ??
     (recoveryLinkError
       ? {
           tone: 'error' as const,
@@ -108,6 +139,18 @@ function AuthModule({
       setMessage({
         tone: 'error',
         text: `Use a password with at least ${MINIMUM_PASSWORD_LENGTH} characters.`,
+      })
+      return
+    }
+
+    const normalizedPhone =
+      activeMode === 'signup'
+        ? normalizeInternationalPhone(phoneNumber)
+        : null
+    if (activeMode === 'signup' && !normalizedPhone) {
+      setMessage({
+        tone: 'error',
+        text: 'Enter a valid phone number, for example +254 712 345 678.',
       })
       return
     }
@@ -143,7 +186,10 @@ function AuthModule({
         const { data, error } = await authClient.auth.signUp({
           email: normalizedEmail,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            data: { phone_number: normalizedPhone },
+            emailRedirectTo: `${window.location.origin}/login`,
+          },
         })
         if (error) {
           setMessage({
@@ -152,18 +198,18 @@ function AuthModule({
           })
           return
         }
+        if (data.session) {
+          await authClient.auth.signOut()
+        }
         setPassword('')
         setConfirmPassword('')
-        setMessage({
-          tone: 'success',
-          text: data.session
-            ? 'Your account is ready and you are signed in. Review account data setup before opening private sections.'
-            : 'Your account was created. Check your inbox for the verification email and follow its link to confirm your address. Once confirmed, return to LossLens and sign in. If the email does not arrive, check your spam folder or request a password reset.',
-        })
+        onRegistrationComplete()
       } else if (activeMode === 'forgot-password') {
         const { error } = await authClient.auth.resetPasswordForEmail(
           normalizedEmail,
-          { redirectTo: window.location.origin },
+          {
+            redirectTo: `${window.location.origin}/update-password`,
+          },
         )
         if (error) {
           setMessage({
@@ -189,10 +235,6 @@ function AuthModule({
         setConfirmPassword('')
         setMode('login')
         onRecoveryComplete()
-        setMessage({
-          tone: 'success',
-          text: 'Your password has been updated. You can continue to LossLens account setup.',
-        })
       }
     } catch {
       setMessage({
@@ -220,22 +262,26 @@ function AuthModule({
       : activeMode === 'forgot-password'
         ? 'Reset your password'
         : activeMode === 'reset-password'
-          ? 'Choose a new password'
-          : 'Sign in'
+          ? 'Create a new password'
+          : activeMode === 'login'
+            ? 'Welcome back'
+            : 'Create an account'
 
   return (
     <section aria-labelledby="auth-title" className="section-block auth-section">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">Account access · personal-data setup first</p>
           <h1 id="auth-title" tabIndex={-1}>
             {session && !recoveryAvailable ? 'Your account' : title}
           </h1>
           <p className="section-description">
-            Sign-in uses your configured Supabase project. Before private
-            sections open, LossLens explains account storage and asks for your
-            choice. Existing browser records are not sent until you explicitly
-            confirm a backup and migration.
+            {activeMode === 'login'
+              ? 'Your journey continues here. Sign in to access your LossLens account.'
+              : activeMode === 'signup'
+                ? ''
+                : activeMode === 'forgot-password'
+                  ? ''
+                  : 'Choose a new password to secure your LossLens account.'}
           </p>
         </div>
       </div>
@@ -282,6 +328,21 @@ function AuthModule({
               Return to LossLens
             </button>
           </div>
+        ) : activeMode === 'reset-password' && !recoveryAvailable ? (
+          <div className="auth-account">
+            <p className="auth-message auth-message-error" role="alert">
+              {recoveryLinkError
+                ? 'This password-reset link is invalid or has expired. Request a new reset email.'
+                : 'Open a valid password-reset link before changing your password.'}
+            </p>
+            <button
+              className="secondary-button"
+              onClick={() => changeMode('forgot-password')}
+              type="button"
+            >
+              Request another reset email
+            </button>
+          </div>
         ) : (
           <>
             {authNotice && (
@@ -326,7 +387,8 @@ function AuthModule({
                       ? 'New password'
                       : 'Password'}
                   </label>
-                  <input
+                  <div className="password-input-wrap">
+                    <input
                     autoComplete={
                       activeMode === 'login'
                         ? 'current-password'
@@ -337,10 +399,19 @@ function AuthModule({
                     name="password"
                     onChange={(event) => setPassword(event.currentTarget.value)}
                     required
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     minLength={MINIMUM_PASSWORD_LENGTH}
-                  />
+                    />
+                    <button
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      className="password-visibility-button"
+                      onClick={() => setShowPassword((visible) => !visible)}
+                      type="button"
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
                   <span className="field-hint" id="auth-password-hint">
                     Use at least {MINIMUM_PASSWORD_LENGTH} characters.
                   </span>
@@ -353,7 +424,8 @@ function AuthModule({
                   <label htmlFor="auth-confirm-password">
                     Confirm password
                   </label>
-                  <input
+                  <div className="password-input-wrap">
+                    <input
                     autoComplete="new-password"
                     disabled={pending}
                     id="auth-confirm-password"
@@ -362,9 +434,43 @@ function AuthModule({
                       setConfirmPassword(event.currentTarget.value)
                     }
                     required
-                    type="password"
+                    type={showConfirmPassword ? 'text' : 'password'}
                     value={confirmPassword}
+                    />
+                    <button
+                      aria-label={showConfirmPassword ? 'Hide confirmed password' : 'Show confirmed password'}
+                      className="password-visibility-button"
+                      onClick={() =>
+                        setShowConfirmPassword((visible) => !visible)
+                      }
+                      type="button"
+                    >
+                      {showConfirmPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeMode === 'signup' && (
+                <div className="form-field">
+                  <label htmlFor="auth-phone">Phone number</label>
+                  <input
+                    autoComplete="tel"
+                    disabled={pending}
+                    id="auth-phone"
+                    inputMode="tel"
+                    name="phone"
+                    onChange={(event) =>
+                      setPhoneNumber(event.currentTarget.value)
+                    }
+                    placeholder="+254 712 345 678"
+                    required
+                    type="tel"
+                    value={phoneNumber}
                   />
+                  <span className="field-hint">
+                    Kenyan and other international numbers are accepted.
+                  </span>
                 </div>
               )}
 

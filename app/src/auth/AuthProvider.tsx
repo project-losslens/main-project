@@ -33,6 +33,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       hashParams.has('error_code') ||
       queryParams.has('error') ||
       queryParams.has('error_code')
+    const confirmationLinkRequested =
+      hashParams.get('type') === 'signup' ||
+      hashParams.get('type') === 'email' ||
+      queryParams.get('type') === 'signup' ||
+      queryParams.get('type') === 'email'
 
     async function restoreSession() {
       try {
@@ -48,14 +53,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setRecoveryAvailable(true)
               setRecoveryLinkError(false)
               setAuthNotice('')
-              navigate('/reset-password', { replace: true })
+              navigate('/update-password', { replace: true })
             } else if (event === 'SIGNED_IN') {
               setRecoveryLinkError(false)
               setAuthNotice('')
+              if (confirmationLinkRequested) {
+                navigate('/login?confirmed=1', { replace: true })
+                void supabase.auth.signOut()
+              }
             } else if (event === 'SIGNED_OUT') {
               setRecoveryAvailable(false)
               setRecoveryLinkError(false)
-              setAuthNotice('Your session ended. Sign in to continue.')
             }
           },
         )
@@ -74,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             (recoveryLinkRequested && !sessionResult.data.session)
           ) {
             setRecoveryLinkError(true)
-            navigate('/reset-password', { replace: true })
+            navigate('/update-password', { replace: true })
           }
         }
       } catch {
@@ -117,8 +125,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   useEffect(() => {
-    if (recoveryAvailable && location.pathname !== '/reset-password') {
-      navigate('/reset-password', { replace: true })
+    if (recoveryAvailable && location.pathname !== '/update-password') {
+      navigate('/update-password', { replace: true })
     }
   }, [location.pathname, navigate, recoveryAvailable])
 

@@ -13,7 +13,7 @@ function ProtectedRoute() {
     )
   }
 
-  if (!session) {
+  if (!session || !session.user.email_confirmed_at) {
     return (
       <Navigate
         replace

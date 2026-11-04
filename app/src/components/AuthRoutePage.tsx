@@ -30,7 +30,7 @@ function AuthRoutePage({ mode }: { mode: AuthMode }) {
           login: '/login',
           signup: '/register',
           'forgot-password': '/forgot-password',
-          'reset-password': '/reset-password',
+          'reset-password': '/update-password',
         }
         navigate(pathByMode[nextMode], {
           replace: true,
@@ -39,8 +39,11 @@ function AuthRoutePage({ mode }: { mode: AuthMode }) {
       }}
       onRecoveryComplete={() => {
         auth.setRecoveryAvailable(false)
-        navigate('/login', { replace: true, state: location.state })
+        navigate('/login?passwordUpdated=1', { replace: true, state: location.state })
       }}
+      onRegistrationComplete={() =>
+        navigate('/login?checkEmail=1', { replace: true })
+      }
       onReturnHome={() => navigate(from ?? '/dashboard', { replace: true })}
       onReturnPublicLanding={() => navigate('/', { replace: true })}
       recoveryAvailable={auth.recoveryAvailable}

@@ -89,7 +89,7 @@ function AppRoutes() {
           />
           <Route
             element={<AuthRoutePage mode="reset-password" />}
-            path="reset-password"
+            path="update-password"
           />
         </Route>
 

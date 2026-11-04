@@ -122,41 +122,6 @@ begin
     end if;
   end loop;
 
-  if pg_catalog.has_table_privilege('authenticated', 'public.weekly_reviews', 'SELECT')
-     or pg_catalog.has_table_privilege('authenticated', 'public.weekly_reviews', 'INSERT')
-     or pg_catalog.has_table_privilege('authenticated', 'public.weekly_reviews', 'UPDATE')
-     or pg_catalog.has_table_privilege('authenticated', 'public.weekly_reviews', 'DELETE')
-  then
-    raise exception 'Authenticated clients unexpectedly have access to schema-only feature tables';
-  end if;
-
-  foreach target_table in array array[
-    'weekly_reviews'
-  ] loop
-    for column_name in
-      select c.column_name
-      from information_schema.columns as c
-      where c.table_schema = 'public'
-        and c.table_name = target_table
-    loop
-      if pg_catalog.has_column_privilege(
-           'authenticated', 'public.' || target_table, column_name, 'SELECT'
-         )
-         or pg_catalog.has_column_privilege(
-           'authenticated', 'public.' || target_table, column_name, 'INSERT'
-         )
-         or pg_catalog.has_column_privilege(
-           'authenticated', 'public.' || target_table, column_name, 'UPDATE'
-         )
-         or pg_catalog.has_column_privilege(
-           'authenticated', 'public.' || target_table, column_name, 'REFERENCES'
-         ) then
-        raise exception 'Authenticated clients have unintended column access to public.%.%',
-          target_table, column_name;
-      end if;
-    end loop;
-  end loop;
-
   if pg_catalog.has_column_privilege(
        'authenticated', 'public.user_preferences',
        'cloud_storage_consent_version', 'INSERT'
@@ -240,6 +205,22 @@ begin
 end;
 $$;
 
+reset role;
+insert into public.user_preferences (user_id, alternative_activities, reasons_to_pause, locale)
+values
+  (
+    current_setting('losslens.test_user_a')::uuid,
+    array['Synthetic activity A'],
+    'Synthetic preference seed A',
+    'en-KE'
+  ),
+  (
+    current_setting('losslens.test_user_b')::uuid,
+    array['Synthetic activity B'],
+    'Synthetic preference seed B',
+    'en-KE'
+  );
+
 set local role authenticated;
 select set_config(
   'request.jwt.claim.sub',
@@ -250,13 +231,12 @@ do $$
 declare
   setup_row record;
   no_consent_write_rejected boolean := false;
+  preference_update_count integer;
 begin
   select * into setup_row from public.get_data_setup_status();
   if not found
-     or setup_row.has_consent is distinct from false
-     or setup_row.validated_bet_migration is distinct from false
-     or setup_row.validated_personal_migration is distinct from false then
-    raise exception 'Initial setup status did not report all three values as false';
+     or setup_row.has_consent is distinct from false then
+    raise exception 'Initial setup status did not report has_consent=false';
   end if;
 
   begin
@@ -273,6 +253,49 @@ begin
   if not no_consent_write_rejected then
     raise exception 'Personal-record insert succeeded without active consent';
   end if;
+
+  if not exists (
+    select 1
+    from public.user_preferences
+    where user_id = auth.uid()
+      and reasons_to_pause = 'Synthetic preference seed A'
+  ) then
+    raise exception 'User A cannot SELECT their preferences without consent';
+  end if;
+
+  if exists (
+    select 1
+    from public.user_preferences
+    where user_id = current_setting('losslens.test_user_b')::uuid
+  ) then
+    raise exception 'User A can SELECT another users preferences';
+  end if;
+
+  begin
+    insert into public.user_preferences (
+      alternative_activities, reasons_to_pause, locale
+    )
+    values (
+      array['Blocked preference insert'],
+      'Blocked preference insert',
+      'en-KE'
+    );
+    raise exception 'Preference INSERT succeeded without active consent';
+  exception when insufficient_privilege then
+    null;
+  end;
+
+  begin
+    update public.user_preferences
+    set reasons_to_pause = 'Blocked preference update'
+    where user_id = auth.uid();
+  exception when insufficient_privilege then
+    null;
+  end;
+  get diagnostics preference_update_count = row_count;
+  if preference_update_count <> 0 then
+    raise exception 'Preference UPDATE succeeded without active consent';
+  end if;
 end;
 $$;
 select public.record_cloud_storage_consent('cloud-storage-v1');
@@ -283,11 +306,63 @@ declare
 begin
   select * into setup_row from public.get_data_setup_status();
   if not found
-     or setup_row.has_consent is distinct from true
-     or setup_row.validated_bet_migration is distinct from false
-     or setup_row.validated_personal_migration is distinct from false then
-    raise exception 'Initial setup status did not report consent=true and both migrations=false';
+     or setup_row.has_consent is distinct from true then
+    raise exception 'Setup status did not report has_consent=true after recording consent';
   end if;
+end;
+$$;
+
+do $$
+declare
+  preference_insert_reached_constraint boolean := false;
+  affected integer;
+  preference_ownership_rejected boolean := false;
+begin
+  begin
+    insert into public.user_preferences (
+      alternative_activities, reasons_to_pause, locale
+    )
+    values (
+      array['Synthetic duplicate preference'],
+      'Synthetic duplicate preference',
+      'en-KE'
+    );
+  exception when unique_violation then
+    preference_insert_reached_constraint := true;
+  end;
+  if not preference_insert_reached_constraint then
+    raise exception 'Preference INSERT was denied by policy after consent';
+  end;
+
+  update public.user_preferences
+  set reasons_to_pause = 'Synthetic preference updated after consent'
+  where user_id = auth.uid();
+  get diagnostics affected = row_count;
+  if affected <> 1 then
+    raise exception 'User A cannot UPDATE their preferences after consent';
+  end;
+
+  begin
+    update public.user_preferences
+    set user_id = current_setting('losslens.test_user_b')::uuid
+    where user_id = auth.uid();
+    get diagnostics affected = row_count;
+  exception when insufficient_privilege then
+    preference_ownership_rejected := true;
+  exception when raise_exception then
+    preference_ownership_rejected := true;
+  end;
+  if not preference_ownership_rejected and affected <> 0 then
+    raise exception 'User A unexpectedly changed preference ownership';
+  end if;
+
+  update public.user_preferences
+  set reasons_to_pause = 'Blocked cross-user preference update'
+  where user_id = current_setting('losslens.test_user_b')::uuid;
+  get diagnostics affected = row_count;
+  if affected <> 0 then
+    raise exception 'User A updated another users preferences';
+  end;
 end;
 $$;
 
@@ -320,6 +395,13 @@ insert into public.diary_entries (
 
 insert into public.recovery_goals (mode, title, target_days)
 values ('stop', 'Synthetic test goal', 7);
+
+insert into public.weekly_reviews (week_start, week_end, achievements)
+values (
+  date_trunc('week', current_date)::date,
+  (date_trunc('week', current_date)::date + 6),
+  'Synthetic test reflection'
+);
 
 insert into public.monthly_reviews (month_start, achievements)
 values (date_trunc('month', current_date)::date, 'Synthetic test reflection');
@@ -448,6 +530,7 @@ declare
     'recovery_check_ins',
     'diary_entries',
     'recovery_goals',
+    'weekly_reviews',
     'monthly_reviews',
     'user_preferences',
     'tool_reflections',
@@ -506,6 +589,7 @@ declare
     'recovery_check_ins',
     'diary_entries',
     'recovery_goals',
+    'weekly_reviews',
     'monthly_reviews',
     'user_preferences',
     'tool_reflections',
@@ -514,8 +598,8 @@ declare
   mutable_tables text[] := array[
     'financial_entries', 'financial_period_contexts',
     'financial_duplicate_decisions', 'recovery_check_ins',
-    'diary_entries', 'recovery_goals', 'monthly_reviews',
-    'user_preferences', 'tool_reflections'
+    'diary_entries', 'recovery_goals', 'weekly_reviews',
+    'monthly_reviews', 'tool_reflections'
   ];
   mutable_assignments text[] := array[
     'note = ''Blocked by RLS''',
@@ -751,11 +835,12 @@ declare
   table_name text;
   visible_count bigint;
   setup_row record;
+  preference_update_count integer;
   consent_required_tables text[] := array[
     'financial_entries', 'financial_period_contexts',
     'financial_duplicate_decisions', 'recovery_check_ins',
-    'diary_entries', 'recovery_goals', 'monthly_reviews',
-    'user_preferences', 'tool_reflections'
+    'diary_entries', 'recovery_goals', 'weekly_reviews',
+    'monthly_reviews', 'tool_reflections'
   ];
 begin
   foreach table_name in array consent_required_tables loop
@@ -769,11 +854,44 @@ begin
   end loop;
 
   select * into setup_row from public.get_data_setup_status();
-  if setup_row.has_consent is distinct from false
-     or setup_row.validated_bet_migration is distinct from false
-     or setup_row.validated_personal_migration is distinct from false then
-    raise exception 'Revoked setup status did not report all three values as false';
+  if setup_row.has_consent is distinct from false then
+    raise exception 'Revoked setup status did not report has_consent=false';
   end if;
+
+  if not exists (
+    select 1
+    from public.user_preferences
+    where user_id = auth.uid()
+      and reasons_to_pause = 'Synthetic preference updated after consent'
+  ) then
+    raise exception 'User A cannot SELECT preferences after consent revocation';
+  end if;
+
+  begin
+    update public.user_preferences
+    set reasons_to_pause = 'Blocked after preference consent revocation'
+    where user_id = auth.uid();
+  exception when insufficient_privilege then
+    null;
+  end;
+  get diagnostics preference_update_count = row_count;
+  if preference_update_count <> 0 then
+    raise exception 'Preference UPDATE succeeded after consent revocation';
+  end if;
+
+  begin
+    insert into public.user_preferences (
+      alternative_activities, reasons_to_pause, locale
+    )
+    values (
+      array['Blocked after preference consent revocation'],
+      'Blocked after preference consent revocation',
+      'en-KE'
+    );
+    raise exception 'Preference INSERT succeeded after consent revocation';
+  exception when insufficient_privilege then
+    null;
+  end;
 
   begin
     insert into public.financial_entries (

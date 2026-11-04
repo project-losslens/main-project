@@ -261,17 +261,13 @@ as $$
 $$;
 
 create or replace function public.get_data_setup_status()
-returns table (
-  has_consent boolean,
-  validated_bet_migration boolean,
-  validated_personal_migration boolean
-)
+returns table (has_consent boolean)
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select public.has_active_cloud_storage_consent(), false, false
+  select public.has_active_cloud_storage_consent()
   where (select auth.uid()) is not null;
 $$;
 
@@ -341,6 +337,8 @@ $$;
 
 revoke all on function public.record_cloud_storage_consent(text) from public, anon, authenticated;
 revoke all on function public.revoke_cloud_storage_consent() from public, anon, authenticated;
+revoke all on function public.get_data_setup_status() from public, anon, authenticated;
+revoke all on function public.has_active_cloud_storage_consent() from public, anon, authenticated;
 
 grant execute on function public.get_data_setup_status() to authenticated;
 grant execute on function public.has_active_cloud_storage_consent() to authenticated;
@@ -426,46 +424,51 @@ begin
         update_columns := 'placed_date, bookmaker, bet_type, legs, odds_taken, stake_paise, result, returned_paise, market_family, note, input_route';
         delete_allowed := true;
       when 'financial_period_contexts' then
-        select_columns := 'id, user_id, period_start, period_end, income_paise, loss_budget_paise, reviewed, accounting_status, updated_at';
+        select_columns := 'id, user_id, period_start, period_end, income_paise, loss_budget_paise, reviewed, accounting_status, created_at, updated_at';
         insert_columns := 'period_start, period_end, income_paise, loss_budget_paise, reviewed, accounting_status, updated_at';
         update_columns := 'period_start, period_end, income_paise, loss_budget_paise, reviewed, accounting_status';
         delete_allowed := true;
       when 'financial_duplicate_decisions' then
-        select_columns := 'id, user_id, duplicate_key, decision, selected_entry_id, updated_at';
+        select_columns := 'id, user_id, duplicate_key, decision, selected_entry_id, created_at, updated_at';
         insert_columns := 'duplicate_key, decision, selected_entry_id, updated_at';
         update_columns := 'duplicate_key, decision, selected_entry_id';
         delete_allowed := true;
       when 'recovery_check_ins' then
-        select_columns := 'id, user_id, entry_date, gambled, duration_minutes, urge_level, mood, triggers, note, updated_at';
-        insert_columns := 'entry_date, gambled, duration_minutes, urge_level, mood, triggers, note, updated_at';
-        update_columns := 'entry_date, gambled, duration_minutes, urge_level, mood, triggers, note';
+        select_columns := 'id, user_id, entry_date, gambled, duration_minutes, urge_level, mood, triggers, coping_strategies, stake_paise, returned_paise, note, wants_reflection, reflection_trigger, reflection_thought, reflection_alternative, created_at, updated_at';
+        insert_columns := 'entry_date, gambled, duration_minutes, urge_level, mood, triggers, coping_strategies, stake_paise, returned_paise, note, wants_reflection, reflection_trigger, reflection_thought, reflection_alternative, updated_at';
+        update_columns := 'entry_date, gambled, duration_minutes, urge_level, mood, triggers, coping_strategies, stake_paise, returned_paise, note, wants_reflection, reflection_trigger, reflection_thought, reflection_alternative';
         delete_allowed := true;
       when 'diary_entries' then
-        select_columns := 'id, user_id, occurred_at, mood, triggers, coping_strategies, note, updated_at';
-        insert_columns := 'id, occurred_at, mood, triggers, coping_strategies, note, updated_at';
-        update_columns := 'occurred_at, mood, triggers, coping_strategies, note';
+        select_columns := 'id, user_id, occurred_at, mood, gambled, stake_paise, returned_paise, triggers, coping_strategies, note, wants_reflection, created_at, updated_at';
+        insert_columns := 'id, occurred_at, mood, gambled, stake_paise, returned_paise, triggers, coping_strategies, note, wants_reflection, updated_at';
+        update_columns := 'occurred_at, mood, gambled, stake_paise, returned_paise, triggers, coping_strategies, note, wants_reflection';
         delete_allowed := true;
       when 'recovery_goals' then
-        select_columns := 'id, user_id, mode, target_days, updated_at';
-        insert_columns := 'goal_type, mode, title, target_days, updated_at';
-        update_columns := 'goal_type, mode, title, target_days';
+        select_columns := 'id, user_id, goal_type, mode, title, specific, measurable, achievable, relevant, target_days, target_date, obstacles, coping_plan, status, progress_note, created_at, updated_at';
+        insert_columns := 'goal_type, mode, title, specific, measurable, achievable, relevant, target_days, target_date, obstacles, coping_plan, status, progress_note, updated_at';
+        update_columns := 'goal_type, mode, title, specific, measurable, achievable, relevant, target_days, target_date, obstacles, coping_plan, status, progress_note';
+        delete_allowed := true;
+      when 'weekly_reviews' then
+        select_columns := 'id, user_id, week_start, week_end, achievements, difficulties, lessons, next_steps, completed_at, created_at, updated_at';
+        insert_columns := 'week_start, week_end, achievements, difficulties, lessons, next_steps, completed_at, updated_at';
+        update_columns := 'week_start, week_end, achievements, difficulties, lessons, next_steps, completed_at';
         delete_allowed := true;
       when 'monthly_reviews' then
-        select_columns := 'id, user_id, month_start, achievements, difficulties, lessons, future_intentions, updated_at';
+        select_columns := 'id, user_id, month_start, achievements, difficulties, lessons, future_intentions, created_at, updated_at';
         insert_columns := 'month_start, achievements, difficulties, lessons, future_intentions, updated_at';
         update_columns := 'month_start, achievements, difficulties, lessons, future_intentions';
         delete_allowed := true;
       when 'user_preferences' then
-        select_columns := 'id, user_id, alternative_activities, reasons_to_pause';
-        insert_columns := 'alternative_activities, reasons_to_pause';
-        update_columns := 'alternative_activities, reasons_to_pause';
+        select_columns := 'id, user_id, alternative_activities, reasons_to_pause, locale, created_at, updated_at';
+        insert_columns := 'alternative_activities, reasons_to_pause, locale, updated_at';
+        update_columns := 'alternative_activities, reasons_to_pause, locale';
       when 'tool_reflections' then
-        select_columns := 'id, user_id, reflection_date, trigger, thought, alternative_thought, updated_at';
+        select_columns := 'id, user_id, reflection_date, trigger, thought, alternative_thought, created_at, updated_at';
         insert_columns := 'reflection_date, trigger, thought, alternative_thought, updated_at';
         update_columns := 'reflection_date, trigger, thought, alternative_thought';
         delete_allowed := true;
       when 'account_deletion_requests' then
-        select_columns := 'id, user_id, status, requested_at';
+        select_columns := 'id, user_id, status, requested_at, processed_at, user_message, created_at, updated_at';
         insert_columns := 'user_message';
       else
         select_columns := null;
@@ -508,7 +511,23 @@ begin
         target_table || '_insert_own',
         target_table
       );
-    elsif target_table not in ('weekly_reviews') then
+    elsif target_table = 'user_preferences' then
+      execute format(
+        'create policy %I on public.%I for select to authenticated using (user_id = (select auth.uid()))',
+        target_table || '_select_own',
+        target_table
+      );
+      execute format(
+        'create policy %I on public.%I for insert to authenticated with check (user_id = (select auth.uid()) and public.has_active_cloud_storage_consent())',
+        target_table || '_insert_own',
+        target_table
+      );
+      execute format(
+        'create policy %I on public.%I for update to authenticated using (user_id = (select auth.uid()) and public.has_active_cloud_storage_consent()) with check (user_id = (select auth.uid()) and public.has_active_cloud_storage_consent())',
+        target_table || '_update_own',
+        target_table
+      );
+    else
       execute format(
         'create policy %I on public.%I for select to authenticated using (user_id = (select auth.uid()) and public.has_active_cloud_storage_consent())',
         target_table || '_select_own',

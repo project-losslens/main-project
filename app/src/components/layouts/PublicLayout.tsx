@@ -36,6 +36,9 @@ function PublicLayout() {
 
   return (
     <div className="app-shell route-shell">
+      <a href="#main" className="skip-link">
+        Skip to main content
+      </a>
       <header className={`site-header${menuOpen ? ' menu-open' : ''}`}>
         <Link aria-label="LossLens home" className="brand" onClick={closeMenu} to="/">
           <img
@@ -46,23 +49,7 @@ function PublicLayout() {
             width="1700"
           />
         </Link>
-        <button
-          aria-controls="route-main-nav"
-          aria-expanded={menuOpen}
-          aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-          className="mobile-menu-toggle"
-          onClick={() => setMenuOpen((open) => !open)}
-          type="button"
-        >
-          <span />
-          <span />
-          <span />
-        </button>
-        <nav
-          aria-label="Main navigation"
-          className="main-nav"
-          id="route-main-nav"
-        >
+        <nav aria-label="Main navigation" className="main-nav" id="route-main-nav">
           <NavLink className="nav-link" onClick={closeMenu} to="/">
             Home
           </NavLink>
@@ -97,7 +84,7 @@ function PublicLayout() {
           ) : (
             <>
               <Link className="header-link" onClick={closeMenu} to="/login">
-                Login
+                Sign in
               </Link>
               <Link className="header-link" onClick={closeMenu} to="/register">
                 Create account
@@ -105,8 +92,33 @@ function PublicLayout() {
             </>
           )}
         </div>
+        <button
+          aria-controls="route-main-nav"
+          aria-expanded={menuOpen}
+          aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+          className="mobile-menu-toggle"
+          onClick={() => setMenuOpen((open) => !open)}
+          type="button"
+        >
+          <span />
+          <span />
+          <span />
+        </button>
       </header>
-      <Outlet />
+      <main className="public-layout-main" id="main">
+        <Outlet />
+      </main>
+      <footer className="public-footer">
+        <div className="public-section-inner">
+          <nav aria-label="Footer navigation" className="public-footer-nav">
+            <Link to="/about">About</Link>
+            <Link to="/support">Support</Link>
+            <Link to="/privacy">Privacy</Link>
+            <Link to="/terms">Terms</Link>
+          </nav>
+          <p>Contact details coming soon</p>
+        </div>
+      </footer>
     </div>
   )
 }
